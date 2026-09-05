@@ -17,9 +17,11 @@ def test_json_config_round_trip(tmp_path: Path) -> None:
     json_path.write_text(json.dumps(raw), encoding="utf-8")
     config = load_config(json_path)
     assert config.shop.rate_usd_per_hr == 75
-    assert config.materials["steel"].mrr_eff_in3_per_hr == 5.0
-    assert find_material(config, "1018").key == "steel"
-    assert find_material(config, "6061-T6").key == "aluminum"
+    assert config.materials["steel_1018"].mrr_eff_in3_per_hr == 5.0
+    assert find_material(config, "1018").key == "steel_1018"
+    assert find_material(config, "6061-T6").key == "al_6061"
+    assert find_material(config, "aluminum").key == "al_6061"
+    assert find_material(config, "steel").key == "steel_1018"
 
 
 def test_unknown_material() -> None:

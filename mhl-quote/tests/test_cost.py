@@ -11,7 +11,7 @@ CONFIG = Path(__file__).resolve().parents[1] / "config" / "quote.yaml"
 
 def test_locked_cost_model_aluminum_hand_calc() -> None:
     config = load_config(CONFIG)
-    material = config.materials["aluminum"]
+    material = config.materials["al_6061"]
     # stock 4×3×1 = 12 in³; part 4 in³; removal 8
     # MRR 12 → cut 8/12 = 0.6667 hr
     # labor (1 + 0.666666...) * 75 = 125
@@ -41,7 +41,7 @@ def test_locked_cost_model_aluminum_hand_calc() -> None:
 
 def test_min_charge_and_zero_removal() -> None:
     config = load_config(CONFIG)
-    material = config.materials["aluminum"]
+    material = config.materials["al_6061"]
     # 0.5×0.5×0.5 solid = stock 0.125; part 0.125; removal 0
     # labor = 1 * 75 = 75; materials = 0.125 * 0.35 = 0.04375 → 0.04
     # raw = max(75.04, 75) = 75.04
@@ -72,7 +72,7 @@ def test_min_charge_and_zero_removal() -> None:
 
 def test_overrides_stock_mrr_setup_and_invoice() -> None:
     config = load_config(CONFIG)
-    material = config.materials["steel"]
+    material = config.materials["steel_1018"]
     cost = compute_cost(
         config=config,
         material=material,
@@ -102,7 +102,7 @@ def test_overrides_stock_mrr_setup_and_invoice() -> None:
 
 def test_qty_scales_cut_and_catalog_material_not_setup() -> None:
     config = load_config(CONFIG)
-    material = config.materials["aluminum"]
+    material = config.materials["al_6061"]
     cost = compute_cost(
         config=config,
         material=material,
@@ -122,7 +122,7 @@ def test_qty_scales_cut_and_catalog_material_not_setup() -> None:
 
 def test_no_scrap_multiplier() -> None:
     config = load_config(CONFIG)
-    material = config.materials["aluminum"]
+    material = config.materials["al_6061"]
     cost = compute_cost(
         config=config,
         material=material,

@@ -6,6 +6,14 @@ from typing import assert_never
 
 from mhl_quote.config import ConfigError, QuoteConfig, find_material, load_config
 from mhl_quote.geometry import GeometryError
+from mhl_quote.job_inputs import (
+    JobInputError,
+    parse_feature_risks,
+    parse_iso_date,
+    parse_material_source,
+    parse_tolerance_class,
+    parse_turnaround,
+)
 from mhl_quote.models import JobOverrides, LengthUnit, QuoteStatus, UnsupportedProcess, Vec3
 from mhl_quote.quote import estimate_quote
 from mhl_quote.report import render_json, render_text
@@ -91,7 +99,53 @@ def build_parser() -> argparse.ArgumentParser:
         "--qty",
         type=int,
         default=1,
-        help="Quantity (setup once; cut hours and catalog material scale)",
+        help="Quantity (cut hours and catalog material scale)",
+    )
+    parser.add_argument(
+        "--setups",
+        type=int,
+        default=1,
+        help="Number of setups (min 1). Scales setup hours.",
+    )
+    parser.add_argument(
+        "--material-source",
+        choices=("shop_buys", "customer_supplied"),
+        default="shop_buys",
+        help="Who supplies stock. customer_supplied → material $ = 0.",
+    )
+    parser.add_argument(
+        "--turnaround",
+        choices=("standard", "rush", "emergency"),
+        default="standard",
+        help="Lead tier (rush/emergency multipliers are starting points in YAML).",
+    )
+    parser.add_argument(
+        "--due-date",
+        default=None,
+        metavar="YYYY-MM-DD",
+        help="Need-by date. If tighter than --turnaround, the tier is auto-bumped.",
+    )
+    parser.add_argument(
+        "--as-of",
+        default=None,
+        metavar="YYYY-MM-DD",
+        help="As-of date for due-date business-day math (default: today).",
+    )
+    parser.add_argument(
+        "--tolerance",
+        choices=("standard", "tight", "precision"),
+        default="standard",
+        help="Tolerance class (precision forces shop_review_required).",
+    )
+    parser.add_argument(
+        "--feature-risk",
+        action="append",
+        default=[],
+        metavar="RISK",
+        help=(
+            "Optional feature risk (repeatable): deep_pockets, thin_walls, "
+            "fine_engraving, many_holes. Each adds ~0.15 to complexity_mult."
+        ),
     )
     parser.add_argument(
         "--json",
@@ -166,6 +220,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.qty < 1:
             raise ValueError("qty must be >= 1")
+        if args.setups < 1:
+            raise ValueError("setups must be >= 1")
         stock_dims = _stock_override(args)
         find_material(config, args.material)
         result = estimate_quote(
@@ -179,10 +235,19 @@ def main(argv: list[str] | None = None) -> int:
                 stock_dims_in=stock_dims,
                 stock_purchase_cost_usd=args.stock_cost,
                 qty=args.qty,
+                setups=args.setups,
+                material_source=parse_material_source(args.material_source),
+                turnaround=parse_turnaround(args.turnaround),
+                tolerance_class=parse_tolerance_class(args.tolerance),
+                feature_risks=parse_feature_risks(
+                    args.feature_risk, allowed=config.feature_risks.keys
+                ),
+                due_date=parse_iso_date(args.due_date),
+                as_of_date=parse_iso_date(args.as_of),
             ),
             requested_processes=requested,
         )
-    except (ConfigError, GeometryError, ValueError) as exc:
+    except (ConfigError, GeometryError, JobInputError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USAGE
 
@@ -211,13 +276,17 @@ def _stock_override(args: argparse.Namespace) -> Vec3 | None:
 
 def _print_materials(config: QuoteConfig) -> None:
     print(f"Material catalog  ({config.source_path})")
+    print("  $/in³ and MRR_eff marked TODO_REPLACE are placeholders — not market rates.")
     for spec in config.materials.values():
         aliases = ", ".join(spec.aliases) if spec.aliases else "—"
+        enabled = "on" if spec.enabled else "OFF"
+        cost_flag = " TODO_REPLACE" if spec.cost_is_placeholder else ""
+        mrr_flag = " TODO_REPLACE" if spec.mrr_is_placeholder else ""
         print(
-            f"  {spec.key:12}  {spec.label}  "
-            f"MRR_eff={spec.mrr_eff_in3_per_hr:g} in³/hr "
+            f"  {spec.key:12}  {spec.label}  [{spec.family}]  {enabled}  "
+            f"MRR_eff={spec.mrr_eff_in3_per_hr:g} in³/hr{mrr_flag} "
             f"(typical {spec.mrr_typical_low_in3_per_hr:g}–{spec.mrr_typical_high_in3_per_hr:g})  "
-            f"${spec.cost_usd_per_in3:g}/in³  aliases: {aliases}"
+            f"${spec.cost_usd_per_in3:g}/in³{cost_flag}  aliases: {aliases}"
         )
 
 
@@ -230,6 +299,11 @@ def _print_config(config: QuoteConfig) -> None:
         f"  shop rate ${shop.rate_usd_per_hr:g}/hr  setup {shop.setup_hours:g} hr  "
         f"min charge ${shop.min_charge_usd:g}  band {shop.band_low:g}–{shop.band_high:g}"
     )
+    for key, tier in config.turnaround.items():
+        print(
+            f"  turnaround {key.value}: labor×{tier.labor_mult:g} setup×{tier.setup_mult:g} "
+            f"min {tier.min_business_days} business days  (starting points)"
+        )
     print(
         f"  {machine.name} {machine.axes}-axis  "
         f"envelope {machine.envelope_in.x:g}×{machine.envelope_in.y:g}×{machine.envelope_in.z:g} in  "

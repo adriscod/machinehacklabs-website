@@ -59,6 +59,8 @@ def result_to_jsonable(result: QuoteResult) -> dict[str, Any]:
         "rejection_reasons": list(result.rejection_reasons),
         "callouts": list(result.callouts),
         "overrides": result.overrides_applied,
+        "shop_review_required": result.shop_review_required,
+        "shop_review_reasons": list(result.shop_review_reasons),
         "geometry": None,
         "envelope": None,
         "cost": None,
@@ -101,10 +103,17 @@ def _envelope_lines(env: EnvelopeCheck) -> list[str]:
 
 
 def _cost_lines(cost: CostBreakdown) -> list[str]:
-    source = "catalog estimate" if cost.material_cost_is_catalog_estimate else "invoice override"
+    source = "catalog estimate" if cost.material_cost_is_catalog_estimate else "invoice / customer stock"
+    placeholder = "  TODO_REPLACE placeholders" if cost.catalog_values_are_placeholders else ""
+    risks = ",".join(r.value for r in cost.feature_risks) or "none"
     return [
         "COST MODEL  ($75/hr default · materials pass-through · no scrap adder)",
-        f"  Material:   {cost.material_label}  ({source})",
+        f"  Material:   {cost.material_label}  ({cost.material_key} / {cost.material_family})  ({source}){placeholder}",
+        f"  Source:     {cost.material_source.value}  qty={cost.qty}  setups={cost.setups}",
+        f"  Turnaround: {cost.turnaround_applied.value}"
+        + (f"  (bumped from {cost.turnaround_requested.value})" if cost.turnaround_bumped else "")
+        + f"  labor×{cost.rush_labor_mult:g} setup×{cost.rush_setup_mult:g}",
+        f"  Tolerance:  {cost.tolerance_class.value}  complexity_mult={cost.complexity_mult:g}  risks={risks}",
         f"  Stock vol:  {cost.stock_volume_in3:.4f} in³",
         f"  Part vol:   {cost.part_volume_in3:.4f} in³",
         f"  Removal:    {cost.removal_volume_in3:.4f} in³",
@@ -112,11 +121,12 @@ def _cost_lines(cost: CostBreakdown) -> list[str]:
         f"  Setup:      {cost.setup_hours:.4f} hr",
         f"  Cut:        {cost.cut_hours:.4f} hr",
         f"  Labor:      ({cost.setup_hours:.4f} + {cost.cut_hours:.4f}) × "
-        f"${cost.shop_rate_usd_per_hr:g}/hr = ${cost.labor_usd:.2f}",
+        f"${cost.shop_rate_usd_per_hr:g}/hr × {cost.rush_labor_mult:g} = ${cost.labor_usd:.2f}",
         f"  Materials:  ${cost.material_usd:.2f}",
         f"  Raw:        ${cost.raw_quote_usd:.2f}"
         + ("  (min charge applied)" if cost.min_charge_applied else ""),
         f"  RANGE:      ${cost.quote_low_usd:.2f}  –  ${cost.quote_high_usd:.2f}",
+        f"  Review:     {'YES' if cost.shop_review_required else 'no'}",
     ]
 
 
@@ -147,6 +157,10 @@ def _cost_json(cost: CostBreakdown) -> dict[str, Any]:
     return {
         "material_key": cost.material_key,
         "material_label": cost.material_label,
+        "material_family": cost.material_family,
+        "material_source": cost.material_source.value,
+        "qty": cost.qty,
+        "setups": cost.setups,
         "stock_volume_in3": cost.stock_volume_in3,
         "part_volume_in3": cost.part_volume_in3,
         "removal_volume_in3": cost.removal_volume_in3,
@@ -157,8 +171,22 @@ def _cost_json(cost: CostBreakdown) -> dict[str, Any]:
         "labor_usd": cost.labor_usd,
         "material_usd": cost.material_usd,
         "material_cost_is_catalog_estimate": cost.material_cost_is_catalog_estimate,
+        "catalog_values_are_placeholders": cost.catalog_values_are_placeholders,
         "raw_quote_usd": cost.raw_quote_usd,
         "quote_low_usd": cost.quote_low_usd,
         "quote_high_usd": cost.quote_high_usd,
         "min_charge_applied": cost.min_charge_applied,
+        "turnaround_requested": cost.turnaround_requested.value,
+        "turnaround_applied": cost.turnaround_applied.value,
+        "turnaround_bumped": cost.turnaround_bumped,
+        "rush_labor_mult": cost.rush_labor_mult,
+        "rush_setup_mult": cost.rush_setup_mult,
+        "tolerance_class": cost.tolerance_class.value,
+        "feature_risks": [r.value for r in cost.feature_risks],
+        "complexity_mult": cost.complexity_mult,
+        "due_date": cost.due_date.isoformat() if cost.due_date else None,
+        "due_date_business_days": cost.due_date_business_days,
+        "due_date_warning": cost.due_date_warning,
+        "shop_review_required": cost.shop_review_required,
+        "shop_review_reasons": list(cost.shop_review_reasons),
     }

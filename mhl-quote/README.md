@@ -74,7 +74,7 @@ cd mhl-quote
 python -m venv .venv
 .venv\Scripts\activate
 python -m pip install -r requirements.txt
-python -m mhl_quote samples\demo_block.stl --material aluminum
+python -m mhl_quote samples\demo_block.stl --material al_6061
 ```
 
 STEP volume (preferred for confirming a web high-side estimate):
@@ -87,39 +87,103 @@ python -m mhl_quote path\to\part.step --units mm --material steel
 | Flag | Purpose |
 | --- | --- |
 | `--units inch\|mm` | CAD units |
-| `--material aluminum\|steel\|…` | Catalog key or alias |
-| `--qty 3` | Setup once; cut + catalog material scale |
+| `--material al_6061\|steel_1018\|…` | Catalog key or alias (`aluminum` → 6061) |
+| `--qty 3` | Cut hours + catalog material scale |
+| `--setups 2` | Scales setup hours (min 1) |
+| `--material-source shop_buys\|customer_supplied` | Customer stock → material $ = 0 |
+| `--turnaround standard\|rush\|emergency` | Rush mults are YAML starting points |
+| `--due-date YYYY-MM-DD` | Auto-bumps turnaround if the calendar is tighter |
+| `--tolerance standard\|tight\|precision` | Multiplies cut hours; precision → shop review |
+| `--feature-risk deep_pockets` (repeatable) | +0.15 each, complexity cap 1.75 |
 | `--setup-hours` / `--mrr` / `--stock-x/y/z` / `--stock-cost` | Overrides |
 | `--json` | Machine-readable result |
 
 `--finish`, `--five-axis`, `--turning` fail closed.
 
-## Cost model
+## Cost model (RFQ v2)
 
 ```
-stock_vol = bbox_x * bbox_y * bbox_z
-part_vol = solid volume
-removal_vol = max(0, stock_vol - part_vol)
-cut_hours = (removal_vol / MRR_eff) * qty
-labor = (setup_hours + cut_hours) * 75
-materials = catalog $/in³ * stock_vol * qty   (or --stock-cost invoice)
-raw = max(materials + labor, min_charge)
-range = raw * 0.85  …  raw * 1.25
+stock_vol = bbox (or stock override X/Y/Z) volume in³
+part_vol = solid volume in³
+removal_vol = max(0, stock_vol − part_vol)
+cut_hours = (removal_vol / MRR_eff) × qty × complexity_mult
+setup_hours = base_setup_hours × setups × rush_setup_mult
+labor_$ = (setup_hours + cut_hours) × shop_rate × rush_labor_mult
+material_$ = shop_buys ? catalog $/in³ × stock_vol × qty : 0
+raw_$ = max(material_$ + labor_$, min_charge × rush_labor_mult)
+range = raw_$ × 0.85  …  raw_$ × 1.25
 ```
 
-Scrap is not billed. Always a range.
+`complexity_mult = min(1.75, tolerance_mult + n_feature_risks × 0.15)`
 
-## How to calibrate MRR
+Tolerance: standard 1.0, tight 1.25, precision 1.5 (precision → shop review).
 
-1. Take a finished 3-axis job.
-2. Run the CLI (or use the web bbox/volume) and note removal in³.
-3. Chip-making hours only from the traveler.
-4. `actual_mrr = removal_in3 / actual_cut_hours`.
-5. Average aluminum and steel separately; put a slightly conservative number
-   in `config/quote.yaml` → `mrr_eff_in3_per_hr`.
-6. Re-export site JSON. Past jobs should land in the 0.85–1.25 band.
+Turnaround starting points (tune in YAML, not code):
 
-Starting bands: aluminum ~8–15 in³/hr (default 12); steel ~3–8 (default 5).
+| Tier | labor | setup | min business days |
+| --- | --- | --- | --- |
+| standard | 1.0 | 1.0 | 10 |
+| rush | 1.5 | 1.25 | 4 |
+| emergency | 2.0 | 1.5 | 1 |
+
+If `due_date` is tighter than the selected tier, the estimator auto-bumps
+and sets `shop_review_required`. Business days are Mon–Fri only.
+
+Scrap is not billed. Always a range. Not a customer-facing final quote.
+
+## How Andrew replaces TODO costs / MRR
+
+Every catalog `cost_usd_per_in3` and `mrr_eff_in3_per_hr` is a
+**TODO_REPLACE placeholder**, not a market rate.
+
+1. Edit `config/quote.yaml` for the grade (`al_6061`, `ss_304`, …).
+2. Replace `cost_usd_per_in3` from a real stock invoice ($/in³ of the
+   plate or bar you actually buy). Leave scrap unbilled.
+3. Replace `mrr_eff_in3_per_hr` from a finished job:
+   `actual_mrr = removal_in3 / chip_hours`. Use a slightly conservative number.
+4. Change `cost_placeholder` / `mrr_placeholder` from `TODO_REPLACE` to
+   `false` once that grade is calibrated.
+5. Set `enabled: false` to hide a grade from the website dropdown.
+6. Re-export: `python mhl-quote/scripts/export_site_config.py`
+
+Rush / emergency multipliers and lead days are **starting points**. Change
+them under `turnaround:` in the same YAML.
+
+Starting MRR bands (placeholders): aluminum ~8–15 in³/hr; steel ~3–8;
+stainless lower; plastics higher. Do not treat the YAML dollars as quotes.
+
+## /quote/ UI teammate — inputs to wire
+
+Do not treat this folder as owning the form markup. The estimator APIs
+are additive. Pass these into `estimateFromGeometry` / `computeCost`
+(`assets/js/estimator.js`) and copy `result.shop_payload` into FormSubmit
+hidden fields.
+
+**Visible / pricing inputs**
+
+| Field | Values | Effect |
+| --- | --- | --- |
+| `material` | catalog key (`al_6061`, …) | Use `listEnabledMaterials(config)` for the dropdown. `aluminum`/`steel` aliases still resolve. |
+| `material_source` | `shop_buys` \| `customer_supplied` | Customer stock → `material_usd = 0` |
+| `turnaround` | `standard` \| `rush` \| `emergency` | Labor + setup multipliers |
+| `due_date` | `YYYY-MM-DD` | Not price-inert; may auto-bump turnaround |
+| `setups` | integer ≥ 1 (default 1) | Scales setup hours |
+| `tolerance_class` | `standard` \| `tight` \| `precision` | Cut-time mult; precision forces shop review |
+| `feature_risks` | optional multi: `deep_pockets`, `thin_walls`, `fine_engraving`, `many_holes` | +0.15 each, cap 1.75 |
+| `stock_x_in` / `stock_y_in` / `stock_z_in` | optional inches | Replaces AABB as stock (all three together) |
+
+**New shop-only hidden keys** (plus existing bbox / range / hours fields)
+
+`material_key`, `material_family`, `material_source`, `turnaround`,
+`turnaround_requested`, `turnaround_bumped`, `rush_labor_mult`,
+`rush_setup_mult`, `setups`, `qty`, `tolerance_class`, `complexity_mult`,
+`feature_risks`, `due_date_business_days`, `due_date_warning`,
+`shop_review_required`, `shop_review_reasons`,
+`catalog_values_are_placeholders`, `stock_x_in`, `stock_y_in`,
+`stock_z_in`, `stock_override`
+
+See `SHOP_HIDDEN_FIELD_KEYS` and `RFQ_V2_UI_INPUTS` in `assets/js/estimator.js`.
+`/thanks/` must still show no pricing.
 
 ## Tests
 

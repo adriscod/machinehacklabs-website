@@ -77,6 +77,13 @@ python mhl-quote\scripts\export_site_config.py
 
 That writes `assets/config/quote-config.json` for the website.
 
+RFQ v2 catalog grades, rush multipliers, tolerance, and feature-risk
+weights live in that YAML. **Every `$/in³` and `MRR_eff` is a
+`TODO_REPLACE` placeholder** — not a market rate. Andrew replaces those
+numbers (and can tune rush starting points) then re-exports. See
+`mhl-quote/README.md`. The `/quote/` form markup is a teammate's lane;
+estimator APIs are additive (`assets/js/estimator.js`).
+
 ## CLI helper
 
 `mhl-quote/` remains a **calibration / STEP-volume** helper (`python -m mhl_quote`).
