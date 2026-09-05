@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Machine Hack Labs — Quote {{ record.rfq_id }}{% endblock %}
+
+{% block content %}
+<section class="result-head">
+    <p class="crumb"><a href="{{ url_for('index') }}">&larr; New request</a></p>
+    <h1>Request received</h1>
+    <p class="lede">Reference <strong>{{ record.rfq_id }}</strong> — a member of the shop will follow up at
+        <strong>{{ record.contact.email }}</strong>.</p>
+</section>
+
+{% if result.status.value == 'ok' and result.cost %}
+<div class="card quote-card">
+    <p class="quote-label">Rough quote range ({{ record.part.material }})</p>
+    <p class="quote-range">
+        ${{ '%.0f' % result.cost.quote_low_usd }} <span>–</span> ${{ '%.0f' % result.cost.quote_high_usd }}
+    </p>
+    <p class="hint">Per part. Rough range only — not a formal quote. Range widens for setup + material.</p>
+</div>
+
+<div class="card">
+    <h2>How we got there</h2>
+    <table class="kv">
+        <tr><th>Part bounding box</th><td>{{ '%.3f' % result.geometry.bbox_in.x }} × {{ '%.3f' % result.geometry.bbox_in.y }} × {{ '%.3f' % result.geometry.bbox_in.z }} in</td></tr>
+        <tr><th>Part volume</th><td>{{ '%.3f' % result.geometry.part_volume_in3 }} in³</td></tr>
+        <tr><th>Removal</th><td>{{ '%.3f' % result.cost.removal_volume_in3 }} in³ @ {{ '%g' % result.cost.mrr_eff_in3_per_hr }} in³/hr</td></tr>
+        <tr><th>Labor</th><td>({{ '%.2f' % result.cost.setup_hours }} + {{ '%.2f' % result.cost.cut_hours }}) hr × ${{ '%g' % result.cost.shop_rate_usd_per_hr }}/hr = ${{ '%.2f' % result.cost.labor_usd }}</td></tr>
+        <tr><th>Materials</th><td>${{ '%.2f' % result.cost.material_usd }}</td></tr>
+        <tr><th>Machine envelope</th><td>Fits usable travel ✓</td></tr>
+    </table>
+</div>
+{% else %}
+<div class="card quote-card rejected">
+    <p class="quote-label">This part can't be quoted automatically</p>
+    <ul class="reasons">
+        {% for reason in result.rejection_reasons %}
+        <li>{{ reason }}</li>
+        {% endfor %}
+    </ul>
+    <p class="hint">The request was still logged so the shop can review it and reach out.</p>
+</div>
+{% endif %}
+
+{% if result.callouts %}
+<div class="card">
+    <h2>Notes</h2>
+    <ul class="callouts">
+        {% for note in result.callouts %}
+        <li>{{ note }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="actions">
+    <a class="btn" href="{{ url_for('list_requests') }}">View request queue</a>
+    <a class="btn btn-primary" href="{{ url_for('index') }}">Submit another</a>
+</div>
+{% endblock %}

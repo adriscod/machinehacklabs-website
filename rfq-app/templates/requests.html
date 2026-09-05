@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Machine Hack Labs — RFQ Queue{% endblock %}
+
+{% block content %}
+<section class="result-head">
+    <h1>RFQ queue</h1>
+    <p class="lede">{{ records|length }} request{{ '' if records|length == 1 else 's' }} logged locally, newest first.</p>
+</section>
+
+{% if not records %}
+<div class="card empty">
+    <p>No requests yet. <a href="{{ url_for('index') }}">Submit the first one.</a></p>
+</div>
+{% else %}
+<div class="card table-card">
+    <table class="queue">
+        <thead>
+            <tr>
+                <th>Reference</th>
+                <th>Received (UTC)</th>
+                <th>Contact</th>
+                <th>Part</th>
+                <th>Qty</th>
+                <th>Status</th>
+                <th class="num">Range (USD)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in records %}
+            <tr>
+                <td class="mono">{{ r.rfq_id }}</td>
+                <td class="mono">{{ r.received_at }}</td>
+                <td>
+                    <div>{{ r.contact.name }}</div>
+                    <div class="muted">{{ r.contact.email }}{% if r.contact.company %} · {{ r.contact.company }}{% endif %}</div>
+                </td>
+                <td>
+                    <div>{{ r.part.original_filename }}</div>
+                    <div class="muted">{{ r.part.material }} · {{ r.part.units }}</div>
+                </td>
+                <td>{{ r.part.quantity }}</td>
+                <td>
+                    {% if r.summary.status == 'ok' %}
+                    <span class="pill pill-ok">quoted</span>
+                    {% else %}
+                    <span class="pill pill-reject">rejected</span>
+                    {% endif %}
+                </td>
+                <td class="num">
+                    {% if r.summary.quote_low_usd is not none %}
+                    ${{ '%.0f' % r.summary.quote_low_usd }} – ${{ '%.0f' % r.summary.quote_high_usd }}
+                    {% else %}
+                    —
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

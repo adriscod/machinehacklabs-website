@@ -32,5 +32,8 @@ if ! python -m pip install -q -r requirements-step.txt; then
   echo "warning: STEP support (cadquery) failed to install; STL quoting still works"
 fi
 
+# RFQ web app deps (Flask). It reuses this same venv and imports mhl_quote.
+python -m pip install -q -r "$REPO_ROOT/rfq-app/requirements.txt"
+
 echo "mhl-quote environment ready:"
 python -m mhl_quote --show-config

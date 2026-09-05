@@ -1,0 +1,6 @@
+# Runtime RFQ data: uploaded CAD files and the request queue log.
+data/uploads/
+data/requests.jsonl
+__pycache__/
+*.py[cod]
+.pytest_cache/
