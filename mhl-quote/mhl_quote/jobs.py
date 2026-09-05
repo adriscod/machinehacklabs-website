@@ -4,10 +4,10 @@ This is a local shop tool. It is not a customer product, not accounting
 software, and not a Chase integration.
 
 Policy (keep these next to every record):
-- The estimator band is a shop rough range. It is not Andrew's bid.
-- Andrew sets the bid after reviewing the RFQ at quotes@.
+- The estimator band is a shop rough range. It is not the shop bid.
+- The shop sets the bid after reviewing the RFQ at quotes@.
 - Deposit is a materials + tooling floor, not a fixed percent of the bid.
-- Andrew creates a Chase payment request himself and pastes the URL.
+- The shop creates a Chase payment request and pastes the URL.
   This repo never calls Chase and never captures cards.
 - Paying that pasted link is acceptance of the stated scope and price.
 - Collect deposit, then balance, then ship. Scrap is not billed.
@@ -28,8 +28,8 @@ QUOTES_INBOX = "quotes@machinehacklabs.com"
 
 POLICY_NOTES: tuple[str, ...] = (
     "Estimate band is a shop rough range, not the customer bid.",
-    "Andrew sets the bid after quotes@ review. Deposit is a materials+tooling floor, not a fixed percent.",
-    "Paste a Chase payment URL Andrew created. No Chase API. No card capture on machinehacklabs.com.",
+    "The shop sets the bid after quotes@ review. Deposit is a materials+tooling floor, not a fixed percent.",
+    "Paste a Chase payment URL the shop created. No Chase API. No card capture on machinehacklabs.com.",
     "Customer payment of that link is acceptance of the stated scope and price.",
     "Deposit first, then balance, then ship. Scrap is not billed to the customer.",
 )
@@ -197,7 +197,7 @@ def parse_money(value: object | None) -> float | None:
 
 
 def parse_chase_url(value: object | None) -> str | None:
-    """Store the URL Andrew pasted. This is not a Chase API client."""
+    """Store the URL the shop pasted. This is not a Chase API client."""
     if value is None:
         return None
     text = str(value).strip()
@@ -205,7 +205,7 @@ def parse_chase_url(value: object | None) -> str | None:
         return None
     if not (text.startswith("http://") or text.startswith("https://")):
         raise ValueError(
-            "Chase payment link must be an http(s) URL Andrew pasted "
+            "Chase payment link must be an http(s) URL the shop pasted "
             "(this tool does not create or charge the link)"
         )
     return text

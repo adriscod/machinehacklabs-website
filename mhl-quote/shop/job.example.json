@@ -27,13 +27,13 @@
       "at": "2026-09-05T15:10:00Z",
       "workflow_status": "bid_sent",
       "payment_status": "unpaid",
-      "note": "Andrew pasted a Chase link he created; paying it accepts scope/price"
+      "note": "The shop pasted a Chase link it created; paying it accepts scope/price"
     }
   ],
   "policy": [
     "Estimate band is a shop rough range, not the customer bid.",
-    "Andrew sets the bid after quotes@ review. Deposit is a materials+tooling floor, not a fixed percent.",
-    "Paste a Chase payment URL Andrew created. No Chase API. No card capture on machinehacklabs.com.",
+    "The shop sets the bid after quotes@ review. Deposit is a materials+tooling floor, not a fixed percent.",
+    "Paste a Chase payment URL the shop created. No Chase API. No card capture on machinehacklabs.com.",
     "Customer payment of that link is acceptance of the stated scope and price.",
     "Deposit first, then balance, then ship. Scrap is not billed to the customer."
   ]

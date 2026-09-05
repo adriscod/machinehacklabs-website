@@ -45,7 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
     new.add_argument("--email", dest="customer_email")
     new.add_argument("--estimate-low", dest="estimate_low_usd", help="Estimator low (not the bid)")
     new.add_argument("--estimate-high", dest="estimate_high_usd", help="Estimator high (not the bid)")
-    new.add_argument("--bid", dest="bid_usd", help="Andrew's bid (may be outside the estimate band)")
+    new.add_argument("--bid", dest="bid_usd", help="Shop bid (may be outside the estimate band)")
     new.add_argument(
         "--deposit",
         dest="deposit_usd",
@@ -54,7 +54,7 @@ def build_parser() -> argparse.ArgumentParser:
     new.add_argument(
         "--chase-url",
         dest="chase_payment_url",
-        help="Chase payment link Andrew pasted (created outside this site)",
+        help="Chase payment link the shop pasted (created outside this site)",
     )
     new.add_argument("--notes", default="")
     new.add_argument("--json", action="store_true")
@@ -214,7 +214,7 @@ def _format_job(job: JobRecord, root: Path) -> str:
         f"  estimate: {_band(job.estimate_low_usd, job.estimate_high_usd)}  (not the bid)",
         f"  bid:      {_money(job.bid_usd)}",
         f"  deposit:  {_money(job.deposit_usd)}  (materials+tooling floor)",
-        f"  chase:    {job.chase_payment_url or '(paste after Andrew creates the ask)'}",
+        f"  chase:    {job.chase_payment_url or '(paste after the shop creates the ask)'}",
         f"  notes:    {job.notes or '—'}",
         "",
         "Paying the Chase link = acceptance of the stated scope and price.",

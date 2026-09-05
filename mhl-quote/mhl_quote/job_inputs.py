@@ -105,7 +105,7 @@ def business_days_until(as_of: date, due: date) -> int:
     """Mon–Fri days from the day after as_of through due inclusive.
 
     Same-day or past due returns 0. Weekends are skipped. Holidays are not
-    excluded (Andrew can replace this with a shop calendar later).
+    excluded (the shop can replace this with a calendar later).
     """
     if due <= as_of:
         return 0

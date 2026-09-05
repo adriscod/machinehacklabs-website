@@ -24,7 +24,7 @@ STANDING_CALLOUTS = (
     "Machining-only 3-axis mill (Tormach 1500MX). No finishes, turning, or 5-axis.",
     "Materials are pass-through at shop cost. Scrap is absorbed by the shop — not billed.",
     "This is a range, not a single-dollar quote. Calibrate MRR_eff from completed jobs.",
-    "Catalog $/in³ and MRR_eff are TODO_REPLACE placeholders until Andrew replaces them.",
+    "Catalog $/in³ and MRR_eff are TODO_REPLACE placeholders until the shop replaces them.",
 )
 
 
@@ -87,7 +87,7 @@ def estimate_quote(
         flag = " TODO_REPLACE placeholder" if cost.catalog_values_are_placeholders else ""
         callouts.append(
             f"Material $ is a catalog{flag} estimate ({material.cost_usd_per_in3:.4f} USD/in³). "
-            "Pass --stock-cost with Andrew's actual purchase to pass through the real invoice."
+            "Pass --stock-cost with the shop's actual purchase to pass through the real invoice."
         )
     if overrides.mrr_eff_in3_per_hr is not None:
         callouts.append(f"MRR_eff overridden to {overrides.mrr_eff_in3_per_hr:g} in³/hr.")
