@@ -21,7 +21,7 @@ from mhl_quote.models import (
 )
 
 STANDING_CALLOUTS = (
-    "Machining-only 3-axis mill (Tormach 1500MX). No finishes, turning, or 5-axis.",
+    "Machining-only 3-axis mill. No finishes, turning, or 5-axis.",
     "Materials are pass-through at shop cost. Scrap is absorbed by the shop — not billed.",
     "This is a range, not a single-dollar quote. Calibrate MRR_eff from completed jobs.",
     "Catalog $/in³ and MRR_eff are TODO_REPLACE placeholders until the shop replaces them.",

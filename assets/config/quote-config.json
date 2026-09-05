@@ -12,7 +12,7 @@
     "band_high": 1.25
   },
   "machine": {
-    "name": "Tormach 1500MX",
+    "name": "Shop mill",
     "axes": 3,
     "envelope_in": {
       "x": 19.7,

@@ -10,7 +10,7 @@ def render_text(result: QuoteResult, *, material_name: str | None = None) -> str
     lines = [
         "Machine Hack Labs — LOCAL rough quote (not a formal quote)",
         "==========================================================",
-        "Machining-only 3-axis · Tormach 1500MX · no finishes / turning / 5-axis",
+        "Machining-only 3-axis mill · no finishes / turning / 5-axis",
         "",
     ]
     if result.geometry is not None:
@@ -95,7 +95,7 @@ def _envelope_lines(env: EnvelopeCheck) -> list[str]:
     status = "FITS" if env.fits else "OVER-TRAVEL"
     axes = ",".join(a.value.upper() for a in env.over_travel_axes) or "none"
     return [
-        "ENVELOPE  (Tormach 1500MX usable = travel − fixture margin)",
+        "ENVELOPE  (usable travel = published travel − fixture margin)",
         f"  Stock (in):  {s.x:.4f} × {s.y:.4f} × {s.z:.4f}",
         f"  Usable (in): {u.x:.4f} × {u.y:.4f} × {u.z:.4f}",
         f"  Status:      {status}  (over-travel axes: {axes})",

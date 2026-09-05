@@ -29,7 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "Local rough-quote estimator: STEP/STL → AABB stock − part volume → "
             "removal → hours at the configured shop rate + material pass-through. "
-            "Always prints a range. Machining-only 3-axis (Tormach 1500MX)."
+            "Always prints a range. Machining-only 3-axis mill."
         ),
         epilog=(
             "Calibration helper only. Customer RFQs go through the website form "

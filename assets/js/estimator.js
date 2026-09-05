@@ -426,7 +426,7 @@ export function checkEnvelope(machine, stockIn) {
       }
     }
     if (!rotationWouldFit) {
-      rotationNote = "No 90° axis remapping fits the 1500MX usable travel.";
+      rotationNote = "No 90° axis remapping fits the mill usable travel.";
     }
   }
 
@@ -659,7 +659,7 @@ export function estimateFromGeometry({
   });
   const status = reasons.length ? "rejected" : "ok";
   const callouts = [
-    "Machining-only 3-axis mill (Tormach 1500MX). No finishes, turning, or 5-axis.",
+    "Machining-only 3-axis mill. No finishes, turning, or 5-axis.",
     "Materials are pass-through at shop cost. Scrap is absorbed by the shop — not billed.",
     "This is an estimate, not a final bid. The shop confirms from quotes@ after you proceed. A payment link arrives in that email.",
     "Catalog $/in³ and MRR_eff are TODO_REPLACE placeholders until the shop replaces them.",

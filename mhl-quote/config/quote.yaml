@@ -24,7 +24,7 @@ shop:
   band_high: 1.25              # quote_high = raw * band_high
 
 machine:
-  name: Tormach 1500MX
+  name: Shop mill
   axes: 3
   # Published travels. Usable = envelope − fixture_margin.
   envelope_in:

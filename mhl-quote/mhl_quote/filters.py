@@ -17,7 +17,7 @@ PROCESS_REJECTION = {
         "This estimator is machining-only."
     ),
     UnsupportedProcess.FIVE_AXIS: (
-        "5-axis work is out of scope. Shop machine is a Tormach 1500MX 3-axis mill."
+        "5-axis work is out of scope. Shop machine is a 3-axis mill."
     ),
     UnsupportedProcess.TURNING: (
         "Turning / lathe work is out of scope. This estimator is 3-axis mill only."
@@ -70,7 +70,7 @@ def check_envelope(machine: MachineConfig, stock_in: Vec3) -> EnvelopeCheck:
                 break
         if not rotation_would_fit:
             rotation_note = (
-                "No 90° axis remapping fits the 1500MX usable travel. "
+                "No 90° axis remapping fits the mill usable travel. "
                 "This job is outside the machine envelope."
             )
 

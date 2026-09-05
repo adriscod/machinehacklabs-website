@@ -75,7 +75,7 @@ def load_config(path: str | Path | None = None) -> QuoteConfig:
         machine_raw.get("fixture_margin_in"), "machine.fixture_margin_in", resolved
     )
     machine = MachineConfig(
-        name=str(machine_raw.get("name") or "Tormach 1500MX"),
+        name=str(machine_raw.get("name") or "Shop mill"),
         axes=int(machine_raw.get("axes") or 3),
         envelope_in=envelope,
         fixture_margin_in=margin,

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mhl-quote"
 version = "0.1.0"
-description = "Local CNC rough-quote estimator for Machine Hack Labs (Tormach 1500MX)"
+description = "Local CNC rough-quote estimator for Machine Hack Labs (3-axis mill)"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Machine Hack Labs" }]

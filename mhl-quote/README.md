@@ -8,7 +8,7 @@ The **customer product** is the website RFQ form at `/quote/`, which emails
 - Local site server that captures RFQs **without sending email**
 - Local shop job ledger for the quotes@ → Chase payment journey
 
-Ticket: **MHL-CF-001**. Machine: **Tormach 1500MX** (3-axis mill only).
+Ticket: **MHL-CF-001**. Machine: **shop mill** (3-axis only; quotes use usable travel).
 
 ## Website (primary)
 
