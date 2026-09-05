@@ -24,4 +24,4 @@ def test_rfq_inbox_is_quotes_at() -> None:
     assert rfq["quotesInbox"] == "quotes@machinehacklabs.com"
     assert "quotes@machinehacklabs.com" in rfq["productionFormAction"]
     assert rfq["localFormAction"] == "/__local_rfq"
-    assert "not a quote" in rfq["autoresponse"].lower()
+    assert "not a final bid" in rfq["autoresponse"].lower()
