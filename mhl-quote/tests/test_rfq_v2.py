@@ -30,12 +30,8 @@ def test_catalog_has_required_grades_and_placeholder_flags() -> None:
     required = {
         "al_6061",
         "al_7075",
-        "al_2024",
-        "al_5052",
-        "al_mic6",
         "steel_1018",
-        "steel_1045",
-        "steel_a36",
+        "steel_4340",
         "steel_4140",
         "ss_303",
         "ss_304",
@@ -45,8 +41,6 @@ def test_catalog_has_required_grades_and_placeholder_flags() -> None:
         "uhmw",
         "acrylic",
         "pvc",
-        "brass_360",
-        "bronze",
     }
     assert required <= set(config.materials)
     for spec in enabled_materials(config):
@@ -58,7 +52,7 @@ def test_catalog_has_required_grades_and_placeholder_flags() -> None:
         assert spec.mrr_is_placeholder is True
         assert spec.enabled is True
     assert find_material(config, "ss").key == "ss_304"
-    assert find_material(config, "brass").key == "brass_360"
+    assert find_material(config, "4340").key == "steel_4340"
 
 
 def test_rush_vs_standard_hand_calc() -> None:

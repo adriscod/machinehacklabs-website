@@ -98,39 +98,6 @@ materials:
     cost_usd_per_in3: 0.35
     cost_placeholder: TODO_REPLACE
     enabled: true
-  al_2024:
-    label: Aluminum 2024
-    family: aluminum
-    aliases: ["2024", 2024-t3]
-    mrr_eff_in3_per_hr: 10.0
-    mrr_typical_low_in3_per_hr: 7.0
-    mrr_typical_high_in3_per_hr: 13.0
-    mrr_placeholder: TODO_REPLACE
-    cost_usd_per_in3: 0.35
-    cost_placeholder: TODO_REPLACE
-    enabled: true
-  al_5052:
-    label: Aluminum 5052
-    family: aluminum
-    aliases: ["5052"]
-    mrr_eff_in3_per_hr: 11.0
-    mrr_typical_low_in3_per_hr: 8.0
-    mrr_typical_high_in3_per_hr: 14.0
-    mrr_placeholder: TODO_REPLACE
-    cost_usd_per_in3: 0.35
-    cost_placeholder: TODO_REPLACE
-    enabled: true
-  al_mic6:
-    label: Aluminum MIC6
-    family: aluminum
-    aliases: [mic6, mic-6]
-    mrr_eff_in3_per_hr: 12.0
-    mrr_typical_low_in3_per_hr: 8.0
-    mrr_typical_high_in3_per_hr: 15.0
-    mrr_placeholder: TODO_REPLACE
-    cost_usd_per_in3: 0.35
-    cost_placeholder: TODO_REPLACE
-    enabled: true
   steel_1018:
     label: Steel 1018
     family: steel
@@ -142,24 +109,13 @@ materials:
     cost_usd_per_in3: 0.28
     cost_placeholder: TODO_REPLACE
     enabled: true
-  steel_1045:
-    label: Steel 1045
+  steel_4340:
+    label: Steel 4340
     family: steel
-    aliases: ["1045"]
-    mrr_eff_in3_per_hr: 4.0
-    mrr_typical_low_in3_per_hr: 2.5
-    mrr_typical_high_in3_per_hr: 6.0
-    mrr_placeholder: TODO_REPLACE
-    cost_usd_per_in3: 0.28
-    cost_placeholder: TODO_REPLACE
-    enabled: true
-  steel_a36:
-    label: Steel A36
-    family: steel
-    aliases: [a36]
-    mrr_eff_in3_per_hr: 5.0
-    mrr_typical_low_in3_per_hr: 3.0
-    mrr_typical_high_in3_per_hr: 8.0
+    aliases: ["4340"]
+    mrr_eff_in3_per_hr: 3.0
+    mrr_typical_low_in3_per_hr: 1.8
+    mrr_typical_high_in3_per_hr: 4.5
     mrr_placeholder: TODO_REPLACE
     cost_usd_per_in3: 0.28
     cost_placeholder: TODO_REPLACE
@@ -178,7 +134,7 @@ materials:
   ss_303:
     label: Stainless 303
     family: stainless
-    aliases: ["303", stainless-303]
+    aliases: ["303", stainless-303, "300-series"]
     mrr_eff_in3_per_hr: 2.5
     mrr_typical_low_in3_per_hr: 1.5
     mrr_typical_high_in3_per_hr: 4.0
@@ -263,28 +219,6 @@ materials:
     cost_usd_per_in3: 0.18
     cost_placeholder: TODO_REPLACE
     enabled: true
-  brass_360:
-    label: Brass 360
-    family: copper
-    aliases: [brass, "360", c360]
-    mrr_eff_in3_per_hr: 6.0
-    mrr_typical_low_in3_per_hr: 4.0
-    mrr_typical_high_in3_per_hr: 10.0
-    mrr_placeholder: TODO_REPLACE
-    cost_usd_per_in3: 0.80
-    cost_placeholder: TODO_REPLACE
-    enabled: true
-  bronze:
-    label: Bronze
-    family: copper
-    aliases: []
-    mrr_eff_in3_per_hr: 4.0
-    mrr_typical_low_in3_per_hr: 2.5
-    mrr_typical_high_in3_per_hr: 7.0
-    mrr_placeholder: TODO_REPLACE
-    cost_usd_per_in3: 0.80
-    cost_placeholder: TODO_REPLACE
-    enabled: true              # optional grade; set false to hide from /quote/
 
 # Hard non-goals for this estimator. Do not add quote options for these.
 unsupported:

@@ -180,7 +180,7 @@ test("RFQ v2 due_date auto-bumps standard to rush", () => {
 
 test("RFQ v2 catalog exports enabled grades", () => {
   const keys = listEnabledMaterials(config).map((m) => m.key);
-  for (const key of ["al_6061", "steel_1018", "ss_304", "delrin", "brass_360", "bronze"]) {
+  for (const key of ["al_6061", "steel_1018", "steel_4340", "ss_304", "delrin"]) {
     assert.ok(keys.includes(key), key);
   }
   assert.equal(findMaterial(config, "aluminum").key, "al_6061");
