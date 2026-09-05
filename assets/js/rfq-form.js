@@ -1,17 +1,45 @@
-import { detectFormat, estimateFromGeometry, measureCadFile } from "./estimator.js";
+import {
+  FEATURE_RISK_KEYS,
+  SHOP_HIDDEN_FIELD_KEYS,
+  buildShopPayload,
+  detectFormat,
+  estimateFromGeometry,
+  listEnabledMaterials,
+  measureCadFile,
+  turnaroundTiers,
+} from "./estimator.js";
 
 const form = document.getElementById("rfq-form");
 const fileInput = document.getElementById("cad_file");
 const materialInput = document.getElementById("material");
+const materialFilter = document.getElementById("material_filter");
+const materialSourceInput = document.getElementById("material_source");
 const qtyInput = document.getElementById("qty");
+const setupsInput = document.getElementById("setups");
+const turnaroundInput = document.getElementById("turnaround");
+const dueDateInput = document.getElementById("due_date");
+const toleranceInput = document.getElementById("tolerance_class");
 const unitsInput = document.getElementById("units");
+const stockXInput = document.getElementById("stock_x");
+const stockYInput = document.getElementById("stock_y");
+const stockZInput = document.getElementById("stock_z");
 const estimateBox = document.getElementById("estimate-panel");
 const formError = document.getElementById("form-error");
 const submitBtn = document.getElementById("submit-rfq");
 
+const FAMILY_ORDER = ["aluminum", "steel", "stainless", "plastic", "copper"];
+const FAMILY_LABELS = {
+  aluminum: "Aluminum",
+  steel: "Steel",
+  stainless: "Stainless",
+  plastic: "Plastics",
+  copper: "Copper alloys",
+};
+
 let quoteConfig = null;
 let rfqConfig = null;
 let lastEstimate = null;
+let enabledMaterials = [];
 
 function isLocalHost(hostname) {
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
@@ -22,8 +50,100 @@ function moneyText(value) {
 }
 
 function fillHidden(name, value) {
+  const shop = form.querySelector(`input[type="hidden"][name="${name}"]`);
+  if (shop) {
+    shop.value = value == null ? "" : String(value);
+    return;
+  }
   const el = form.elements.namedItem(name);
-  if (el) el.value = value == null ? "" : String(value);
+  if (el && el instanceof HTMLInputElement) {
+    el.value = value == null ? "" : String(value);
+  }
+}
+
+function writeShopHiddens(result) {
+  const payload = result ? result.shop_payload || buildShopPayload(result) : {};
+  const keys = new Set([...SHOP_HIDDEN_FIELD_KEYS, ...Object.keys(payload)]);
+  for (const key of keys) {
+    fillHidden(key, result ? payload[key] : "");
+  }
+}
+
+function familyLabel(family) {
+  const key = String(family || "other").toLowerCase();
+  if (FAMILY_LABELS[key]) return FAMILY_LABELS[key];
+  return key ? key.charAt(0).toUpperCase() + key.slice(1) : "Other";
+}
+
+function populateMaterialSelect(filter = "") {
+  const needle = filter.trim().toLowerCase();
+  const prev = materialInput.value;
+  const groups = new Map();
+  for (const spec of enabledMaterials) {
+    const hay = [spec.key, spec.label, spec.family, ...(spec.aliases || [])]
+      .join(" ")
+      .toLowerCase();
+    if (needle && !hay.includes(needle)) continue;
+    const fam = spec.family || "other";
+    if (!groups.has(fam)) groups.set(fam, []);
+    groups.get(fam).push(spec);
+  }
+  const familyKeys = [
+    ...FAMILY_ORDER.filter((fam) => groups.has(fam)),
+    ...[...groups.keys()].filter((fam) => !FAMILY_ORDER.includes(fam)).sort(),
+  ];
+  materialInput.innerHTML = "";
+  for (const fam of familyKeys) {
+    const og = document.createElement("optgroup");
+    og.label = familyLabel(fam);
+    for (const spec of groups.get(fam) || []) {
+      const opt = document.createElement("option");
+      opt.value = spec.key;
+      opt.textContent = spec.label;
+      og.appendChild(opt);
+    }
+    materialInput.appendChild(og);
+  }
+  const values = [...materialInput.options].map((opt) => opt.value);
+  if (values.includes(prev)) {
+    materialInput.value = prev;
+  } else if (values.includes("al_6061")) {
+    materialInput.value = "al_6061";
+  } else if (values[0]) {
+    materialInput.value = values[0];
+  }
+}
+
+function labelTurnaroundOptions() {
+  if (!quoteConfig) return;
+  const tiers = turnaroundTiers(quoteConfig);
+  for (const opt of turnaroundInput.options) {
+    const tier = tiers[opt.value];
+    if (!tier) continue;
+    const days = tier.min_business_days;
+    const title = opt.value.charAt(0).toUpperCase() + opt.value.slice(1);
+    opt.textContent = `${title} (min ${days} business day${days === 1 ? "" : "s"})`;
+  }
+}
+
+function readFeatureRisks() {
+  return FEATURE_RISK_KEYS.filter((key) => {
+    const el = form.querySelector(`input[type="checkbox"][name="feature_risks"][value="${key}"]`);
+    return Boolean(el && el.checked);
+  });
+}
+
+function readStockOverride() {
+  const raw = [stockXInput.value, stockYInput.value, stockZInput.value].map((v) => String(v).trim());
+  if (raw.every((v) => v === "")) return null;
+  if (raw.some((v) => v === "")) {
+    throw new Error("Stock override needs X, Y, and Z (inches) together.");
+  }
+  const nums = raw.map((v) => Number(v));
+  if (nums.some((n) => !Number.isFinite(n) || n <= 0)) {
+    throw new Error("Stock override dimensions must be > 0 inches.");
+  }
+  return { x: nums[0], y: nums[1], z: nums[2] };
 }
 
 function renderEstimate(result) {
@@ -33,6 +153,7 @@ function renderEstimate(result) {
       <h2>Shop-only rough range</h2>
       <p class="hint">Upload a STEP or STL to run the estimator. Any dollar band here is shop-only — not a final bid, and not something you accept on this page.</p>
     `;
+    writeShopHiddens(null);
     return;
   }
 
@@ -57,7 +178,12 @@ function renderEstimate(result) {
     rangeHtml = "";
   }
 
+  const priced = cost || high;
   const bbox = geo?.bbox_in;
+  const turnaroundNote = priced?.turnaround_bumped
+    ? `${priced.turnaround_applied} (requested ${priced.turnaround_requested}; auto-bumped)`
+    : priced?.turnaround_applied || "—";
+  const riskNote = (priced?.feature_risks || []).join(", ") || "none";
   estimateBox.innerHTML = `
     <h2>Shop-only rough range</h2>
     ${statusHtml}
@@ -65,50 +191,18 @@ function renderEstimate(result) {
     <p class="hint">Shop-only range — not a final bid. Acceptance is paying the Chase link in Andrew’s bid email.</p>
     <dl>
       <dt>File</dt><dd>${geo?.filename || "—"} (${geo?.format || "—"})</dd>
+      <dt>Material</dt><dd>${priced?.material_label || materialInput.value} · ${priced?.material_source || "—"}</dd>
+      <dt>Turnaround</dt><dd>${turnaroundNote}</dd>
+      <dt>Setups / qty</dt><dd>${priced?.setups ?? "—"} / ${priced?.qty ?? "—"}</dd>
+      <dt>Tolerance</dt><dd>${priced?.tolerance_class || "—"} · complexity ${priced?.complexity_mult ?? "—"}</dd>
+      <dt>Feature risks</dt><dd>${riskNote}</dd>
       <dt>BBox</dt><dd>${bbox ? `${bbox.x.toFixed(3)} × ${bbox.y.toFixed(3)} × ${bbox.z.toFixed(3)} in` : "—"}</dd>
       <dt>Part vol</dt><dd>${geo?.volume_known ? `${geo.part_volume_in3.toFixed(4)} in³` : "pending (STEP)"}</dd>
       <dt>Envelope</dt><dd>${env?.fits ? "FITS" : `OVER ${ (env?.over_travel_axes || []).map((a) => a.toUpperCase()).join(",") || "?"}`}</dd>
     </dl>
     <ul class="callouts">${(result.callouts || []).map((c) => `<li>${c}</li>`).join("")}</ul>
   `;
-  writeEstimateFields(result);
-}
-
-function writeEstimateFields(result) {
-  const geo = result.geometry || {};
-  const bbox = geo.bbox_in || {};
-  const env = result.envelope || {};
-  const cost = result.cost || result.high_side_cost;
-  fillHidden("estimator_status", result.status);
-  fillHidden("envelope_fits", env.fits ? "yes" : "no");
-  fillHidden("over_travel_axes", (env.over_travel_axes || []).join(","));
-  fillHidden("bbox_x_in", bbox.x != null ? bbox.x.toFixed(4) : "");
-  fillHidden("bbox_y_in", bbox.y != null ? bbox.y.toFixed(4) : "");
-  fillHidden("bbox_z_in", bbox.z != null ? bbox.z.toFixed(4) : "");
-  fillHidden("part_volume_in3", geo.volume_known ? String(geo.part_volume_in3) : "pending_step");
-  fillHidden("cad_format", geo.format || "");
-  fillHidden(
-    "quote_range_usd",
-    cost ? `${cost.quote_low_usd.toFixed(2)}-${cost.quote_high_usd.toFixed(2)}` : "none"
-  );
-  fillHidden("quote_low_usd", cost ? cost.quote_low_usd.toFixed(2) : "");
-  fillHidden("quote_high_usd", cost ? cost.quote_high_usd.toFixed(2) : "");
-  fillHidden("raw_quote_usd", cost ? cost.raw_quote_usd.toFixed(2) : "");
-  fillHidden("labor_usd", cost ? cost.labor_usd.toFixed(2) : "");
-  fillHidden("material_usd", cost ? cost.material_usd.toFixed(2) : "");
-  fillHidden("removal_volume_in3", cost ? String(cost.removal_volume_in3) : "");
-  fillHidden("cut_hours", cost ? String(cost.cut_hours) : "");
-  fillHidden("setup_hours", cost ? String(cost.setup_hours) : "");
-  fillHidden("step_volume_pending", geo.volume_known ? "no" : "yes");
-  fillHidden("high_side_estimate", result.high_side_cost ? "yes" : "no");
-  fillHidden(
-    "rejection_reasons",
-    (result.rejection_reasons || []).join(" | ")
-  );
-  fillHidden(
-    "shop_review_required",
-    "YES — do not send this range to the customer until Andrew approves."
-  );
+  writeShopHiddens(result);
 }
 
 async function recompute() {
@@ -123,6 +217,9 @@ async function recompute() {
     if (rfqConfig && file.size > rfqConfig.maxFileBytes) {
       throw new Error(`File is over ${(rfqConfig.maxFileBytes / 1024 / 1024).toFixed(0)} MB.`);
     }
+    if (!materialInput.value) {
+      throw new Error("Pick a catalog material.");
+    }
     const unit = unitsInput.value === "mm" ? "mm" : "inch";
     const geometry = await measureCadFile(file, unit);
     const result = estimateFromGeometry({
@@ -130,6 +227,13 @@ async function recompute() {
       materialName: materialInput.value,
       geometry,
       qty: Number(qtyInput.value || 1),
+      setups: Number(setupsInput.value || 1),
+      materialSource: materialSourceInput.value,
+      turnaround: turnaroundInput.value,
+      dueDate: dueDateInput.value || null,
+      toleranceClass: toleranceInput.value,
+      featureRisks: readFeatureRisks(),
+      stockDimsIn: readStockOverride(),
     });
     renderEstimate(result);
   } catch (err) {
@@ -179,10 +283,15 @@ function onSubmit(event) {
     formError.textContent = "Wait for the estimator to finish on the attached file.";
     return;
   }
+  writeShopHiddens(lastEstimate);
   fillHidden(
     "_subject",
-    `MHL RFQ — ${fileInput.files[0].name} — ${materialInput.value} ×${qtyInput.value}`
+    `MHL RFQ — ${fileInput.files[0].name} — ${materialInput.value} ×${qtyInput.value} ${turnaroundInput.value}`
   );
+}
+
+function bindRecompute(el, eventName = "change") {
+  if (el) el.addEventListener(eventName, recompute);
 }
 
 async function boot() {
@@ -196,6 +305,9 @@ async function boot() {
   }
   quoteConfig = await quoteRes.json();
   rfqConfig = await rfqRes.json();
+  enabledMaterials = listEnabledMaterials(quoteConfig);
+  populateMaterialSelect("");
+  labelTurnaroundOptions();
   configureDelivery();
   renderEstimate(null);
   fileInput.addEventListener("change", () => {
@@ -216,9 +328,24 @@ async function boot() {
     }
     recompute();
   });
-  materialInput.addEventListener("change", recompute);
-  qtyInput.addEventListener("change", recompute);
-  unitsInput.addEventListener("change", recompute);
+  materialFilter.addEventListener("input", () => {
+    populateMaterialSelect(materialFilter.value);
+    recompute();
+  });
+  bindRecompute(materialInput);
+  bindRecompute(materialSourceInput);
+  bindRecompute(qtyInput);
+  bindRecompute(setupsInput);
+  bindRecompute(turnaroundInput);
+  bindRecompute(dueDateInput);
+  bindRecompute(toleranceInput);
+  bindRecompute(unitsInput);
+  bindRecompute(stockXInput);
+  bindRecompute(stockYInput);
+  bindRecompute(stockZInput);
+  for (const box of form.querySelectorAll('input[type="checkbox"][name="feature_risks"]')) {
+    box.addEventListener("change", recompute);
+  }
   form.addEventListener("submit", onSubmit);
   submitBtn.disabled = false;
 }

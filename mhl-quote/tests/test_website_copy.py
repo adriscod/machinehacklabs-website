@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -73,6 +74,49 @@ def test_readme_and_autoresponse_cover_template_usage() -> None:
     assert "not a final bid" in auto
     assert "does not include pricing" in auto
     assert "paying the chase payment link" in auto
+
+
+def _shop_hidden_keys() -> list[str]:
+    text = (REPO / "assets" / "js" / "estimator.js").read_text(encoding="utf-8")
+    start = text.index("export const SHOP_HIDDEN_FIELD_KEYS = [")
+    end = text.index("];", start)
+    return re.findall(r'"([a-z0-9_]+)"', text[start:end])
+
+
+def test_quote_page_wires_rfq_v2_controls_and_shop_hiddens() -> None:
+    html = QUOTE_HTML
+    assert 'id="material_filter"' in html
+    assert 'id="material"' in html and 'name="material"' in html
+    assert 'name="material_source"' in html
+    assert 'value="shop_buys"' in html
+    assert 'value="customer_supplied"' in html
+    assert 'name="turnaround"' in html
+    assert 'value="standard"' in html
+    assert 'value="rush"' in html
+    assert 'value="emergency"' in html
+    assert 'name="due_date"' in html
+    assert "not price-inert" in html
+    assert 'name="setups"' in html
+    assert 'name="tolerance_class"' in html
+    assert 'value="tight"' in html
+    assert 'value="precision"' in html
+    for risk in ("deep_pockets", "thin_walls", "fine_engraving", "many_holes"):
+        assert f'value="{risk}"' in html
+    assert 'name="stock_x"' in html
+    assert 'name="stock_y"' in html
+    assert 'name="stock_z"' in html
+    for key in _shop_hidden_keys():
+        assert f'name="{key}"' in html, key
+        if key not in {
+            "material_source",
+            "turnaround",
+            "setups",
+            "qty",
+            "tolerance_class",
+            "feature_risks",
+            "due_date",
+        }:
+            assert f'<input type="hidden" name="{key}"' in html, key
 
 
 def test_home_points_at_quote_route() -> None:

@@ -51,12 +51,19 @@
                 <label for="phone">Phone (optional)</label>
                 <input id="phone" name="phone" type="tel" autocomplete="tel">
 
+                <label for="material_filter">Material</label>
+                <input id="material_filter" type="search" placeholder="Search grades (6061, 1018, Delrin…)" autocomplete="off">
+                <select id="material" name="material" required>
+                    <option value="">Loading catalog…</option>
+                </select>
+                <p class="hint">Grouped shop catalog. Pick a grade — aluminum/steel aliases still resolve in the estimator.</p>
+
                 <div class="row-2">
                     <div>
-                        <label for="material">Material</label>
-                        <select id="material" name="material" required>
-                            <option value="aluminum">Aluminum</option>
-                            <option value="steel">Steel (within 1500MX capability)</option>
+                        <label for="material_source">Material source</label>
+                        <select id="material_source" name="material_source" required>
+                            <option value="shop_buys">Shop buys stock</option>
+                            <option value="customer_supplied">Customer supplied</option>
                         </select>
                     </div>
                     <div>
@@ -67,18 +74,71 @@
 
                 <div class="row-2">
                     <div>
-                        <label for="due_date">Due date</label>
-                        <input id="due_date" name="due_date" type="date" required>
+                        <label for="turnaround">Turnaround</label>
+                        <select id="turnaround" name="turnaround" required>
+                            <option value="standard">Standard</option>
+                            <option value="rush">Rush</option>
+                            <option value="emergency">Emergency</option>
+                        </select>
+                        <p class="hint">Required. A tight due date can auto-bump this for the shop range.</p>
                     </div>
                     <div>
-                        <label for="units">CAD units</label>
-                        <select id="units" name="units">
-                            <option value="inch">Inches</option>
-                            <option value="mm">Millimeters</option>
-                        </select>
-                        <p class="hint">STL defaults to inches; STEP often mm. Wrong units scale the box by 25.4×.</p>
+                        <label for="due_date">Due date</label>
+                        <input id="due_date" name="due_date" type="date" required>
+                        <p class="hint">Feeds the estimate — not price-inert.</p>
                     </div>
                 </div>
+
+                <div class="row-2">
+                    <div>
+                        <label for="setups">Setups</label>
+                        <input id="setups" name="setups" type="number" min="1" step="1" value="1" required>
+                    </div>
+                    <div>
+                        <label for="tolerance_class">Tolerance class</label>
+                        <select id="tolerance_class" name="tolerance_class" required>
+                            <option value="standard">Standard</option>
+                            <option value="tight">Tight</option>
+                            <option value="precision">Precision (shop review)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label for="units">CAD units</label>
+                <select id="units" name="units">
+                    <option value="inch">Inches</option>
+                    <option value="mm">Millimeters</option>
+                </select>
+                <p class="hint">STL defaults to inches; STEP often mm. Wrong units scale the box by 25.4×.</p>
+
+                <fieldset class="checks-set">
+                    <legend>Feature risks (optional)</legend>
+                    <div class="checks">
+                        <label><input type="checkbox" name="feature_risks" value="deep_pockets"> Deep pockets</label>
+                        <label><input type="checkbox" name="feature_risks" value="thin_walls"> Thin walls</label>
+                        <label><input type="checkbox" name="feature_risks" value="fine_engraving"> Fine engraving</label>
+                        <label><input type="checkbox" name="feature_risks" value="many_holes"> Many holes</label>
+                    </div>
+                </fieldset>
+
+                <fieldset class="checks-set">
+                    <legend>Stock override (optional, inches)</legend>
+                    <div class="row-3">
+                        <div>
+                            <label for="stock_x">Stock X</label>
+                            <input id="stock_x" name="stock_x" type="number" min="0" step="any" inputmode="decimal" placeholder="bbox">
+                        </div>
+                        <div>
+                            <label for="stock_y">Stock Y</label>
+                            <input id="stock_y" name="stock_y" type="number" min="0" step="any" inputmode="decimal" placeholder="bbox">
+                        </div>
+                        <div>
+                            <label for="stock_z">Stock Z</label>
+                            <input id="stock_z" name="stock_z" type="number" min="0" step="any" inputmode="decimal" placeholder="bbox">
+                        </div>
+                    </div>
+                    <p class="hint">Leave blank to use the part bounding box. All three are required together.</p>
+                </fieldset>
 
                 <label for="cad_file">Part file (STEP or STL)</label>
                 <input id="cad_file" name="attachment" type="file" accept=".step,.stp,.stl,application/sla,model/step" required>
@@ -129,6 +189,28 @@
                 <input type="hidden" name="step_volume_pending" value="">
                 <input type="hidden" name="high_side_estimate" value="">
                 <input type="hidden" name="rejection_reasons" value="">
+                <input type="hidden" name="material_key" value="">
+                <input type="hidden" name="material_family" value="">
+                <input type="hidden" name="material_source" value="" data-shop-hidden="1">
+                <input type="hidden" name="turnaround" value="" data-shop-hidden="1">
+                <input type="hidden" name="turnaround_requested" value="">
+                <input type="hidden" name="turnaround_bumped" value="">
+                <input type="hidden" name="rush_labor_mult" value="">
+                <input type="hidden" name="rush_setup_mult" value="">
+                <input type="hidden" name="setups" value="" data-shop-hidden="1">
+                <input type="hidden" name="qty" value="" data-shop-hidden="1">
+                <input type="hidden" name="tolerance_class" value="" data-shop-hidden="1">
+                <input type="hidden" name="complexity_mult" value="">
+                <input type="hidden" name="feature_risks" value="" data-shop-hidden="1">
+                <input type="hidden" name="due_date" value="" data-shop-hidden="1">
+                <input type="hidden" name="due_date_business_days" value="">
+                <input type="hidden" name="due_date_warning" value="">
+                <input type="hidden" name="shop_review_reasons" value="">
+                <input type="hidden" name="catalog_values_are_placeholders" value="">
+                <input type="hidden" name="stock_x_in" value="">
+                <input type="hidden" name="stock_y_in" value="">
+                <input type="hidden" name="stock_z_in" value="">
+                <input type="hidden" name="stock_override" value="">
 
                 <p class="err" id="form-error" role="alert"></p>
                 <button class="btn" id="submit-rfq" type="submit" disabled>Send RFQ to quotes@</button>
