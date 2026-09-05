@@ -1,0 +1,265 @@
+{
+  "meta": {
+    "estimator_version": 2,
+    "costs_and_mrr": "TODO_REPLACE",
+    "note": "Every cost_usd_per_in3 and mrr_eff_in3_per_hr in this file is a placeholder (cost_placeholder / mrr_placeholder: TODO_REPLACE). Do not treat them as final shop or market rates. Replace them from invoices and finished-job chip time, then re-export site JSON.\n"
+  },
+  "shop": {
+    "rate_usd_per_hr": 75,
+    "setup_hours": 1.0,
+    "min_charge_usd": 75,
+    "band_low": 0.85,
+    "band_high": 1.25
+  },
+  "machine": {
+    "name": "Shop mill",
+    "axes": 3,
+    "envelope_in": {
+      "x": 19.7,
+      "y": 13.8,
+      "z": 14.0
+    },
+    "fixture_margin_in": {
+      "x": 0.5,
+      "y": 0.5,
+      "z": 0.5
+    }
+  },
+  "turnaround": {
+    "standard": {
+      "labor_mult": 1.0,
+      "setup_mult": 1.0,
+      "min_business_days": 10
+    },
+    "rush": {
+      "labor_mult": 1.5,
+      "setup_mult": 1.25,
+      "min_business_days": 4
+    },
+    "emergency": {
+      "labor_mult": 2.0,
+      "setup_mult": 1.5,
+      "min_business_days": 1
+    }
+  },
+  "tolerance": {
+    "standard": 1.0,
+    "tight": 1.25,
+    "precision": 1.5,
+    "precision_requires_shop_review": true
+  },
+  "feature_risks": {
+    "keys": [
+      "deep_pockets",
+      "thin_walls",
+      "fine_engraving",
+      "many_holes"
+    ],
+    "mult_each": 0.15,
+    "mult_cap": 1.75
+  },
+  "materials": {
+    "al_6061": {
+      "label": "Aluminum 6061",
+      "family": "aluminum",
+      "aliases": [
+        "aluminum",
+        "al",
+        "alum",
+        "6061",
+        "6061-t6",
+        "aluminium"
+      ],
+      "mrr_eff_in3_per_hr": 12.0,
+      "mrr_typical_low_in3_per_hr": 8.0,
+      "mrr_typical_high_in3_per_hr": 15.0,
+      "mrr_placeholder": "TODO_REPLACE",
+      "cost_usd_per_in3": 0.35,
+      "cost_placeholder": "TODO_REPLACE",
+      "enabled": true
+    },
+    "al_7075": {
+      "label": "Aluminum 7075",
+      "family": "aluminum",
+      "aliases": [
+        "7075",
+        "7075-t6"
+      ],
+      "mrr_eff_in3_per_hr": 10.0,
+      "mrr_typical_low_in3_per_hr": 7.0,
+      "mrr_typical_high_in3_per_hr": 13.0,
+      "mrr_placeholder": "TODO_REPLACE",
+      "cost_usd_per_in3": 0.35,
+      "cost_placeholder": "TODO_REPLACE",
+      "enabled": true
+    },
+    "steel_1018": {
+      "label": "Steel 1018",
+      "family": "steel",
+      "aliases": [
+        "steel",
+        "1018",
+        "mild",
+        "mild-steel",
+        "crs"
+      ],
+      "mrr_eff_in3_per_hr": 5.0,
+      "mrr_typical_low_in3_per_hr": 3.0,
+      "mrr_typical_high_in3_per_hr": 8.0,
+      "mrr_placeholder": "TODO_REPLACE",
+      "cost_usd_per_in3": 0.28,
+      "cost_placeholder": "TODO_REPLACE",
+      "enabled": true
+    },
+    "steel_4340": {
+      "label": "Steel 4340",
+      "family": "steel",
+      "aliases": [
+        "4340"
+      ],
+      "mrr_eff_in3_per_hr": 3.0,
+      "mrr_typical_low_in3_per_hr": 1.8,
+      "mrr_typical_high_in3_per_hr": 4.5,
+      "mrr_placeholder": "TODO_REPLACE",
+      "cost_usd_per_in3": 0.28,
+      "cost_placeholder": "TODO_REPLACE",
+      "enabled": true
+    },
+    "steel_4140": {
+      "label": "Steel 4140",
+      "family": "steel",
+      "aliases": [
+        "4140"
+      ],
+      "mrr_eff_in3_per_hr": 3.5,
+      "mrr_typical_low_in3_per_hr": 2.0,
+      "mrr_typical_high_in3_per_hr": 5.0,
+      "mrr_placeholder": "TODO_REPLACE",
+      "cost_usd_per_in3": 0.28,
+      "cost_placeholder": "TODO_REPLACE",
+      "enabled": true
+    },
+    "ss_303": {
+      "label": "Stainless 303",
+      "family": "stainless",
+      "aliases": [
+        "303",
+        "stainless-303",
+        "300-series"
+      ],
+      "mrr_eff_in3_per_hr": 2.5,
+      "mrr_typical_low_in3_per_hr": 1.5,
+      "mrr_typical_high_in3_per_hr": 4.0,
+      "mrr_placeholder": "TODO_REPLACE",
+      "cost_usd_per_in3": 0.55,
+      "cost_placeholder": "TODO_REPLACE",
+      "enabled": true
+    },
+    "ss_304": {
+      "label": "Stainless 304",
+      "family": "stainless",
+      "aliases": [
+        "304",
+        "stainless",
+        "stainless-304",
+        "ss"
+      ],
+      "mrr_eff_in3_per_hr": 2.2,
+      "mrr_typical_low_in3_per_hr": 1.5,
+      "mrr_typical_high_in3_per_hr": 3.5,
+      "mrr_placeholder": "TODO_REPLACE",
+      "cost_usd_per_in3": 0.55,
+      "cost_placeholder": "TODO_REPLACE",
+      "enabled": true
+    },
+    "ss_316": {
+      "label": "Stainless 316",
+      "family": "stainless",
+      "aliases": [
+        "316",
+        "stainless-316"
+      ],
+      "mrr_eff_in3_per_hr": 2.0,
+      "mrr_typical_low_in3_per_hr": 1.2,
+      "mrr_typical_high_in3_per_hr": 3.0,
+      "mrr_placeholder": "TODO_REPLACE",
+      "cost_usd_per_in3": 0.55,
+      "cost_placeholder": "TODO_REPLACE",
+      "enabled": true
+    },
+    "delrin": {
+      "label": "Delrin (acetal)",
+      "family": "plastic",
+      "aliases": [
+        "acetal",
+        "pom"
+      ],
+      "mrr_eff_in3_per_hr": 20.0,
+      "mrr_typical_low_in3_per_hr": 12.0,
+      "mrr_typical_high_in3_per_hr": 30.0,
+      "mrr_placeholder": "TODO_REPLACE",
+      "cost_usd_per_in3": 0.18,
+      "cost_placeholder": "TODO_REPLACE",
+      "enabled": true
+    },
+    "nylon": {
+      "label": "Nylon",
+      "family": "plastic",
+      "aliases": [],
+      "mrr_eff_in3_per_hr": 18.0,
+      "mrr_typical_low_in3_per_hr": 10.0,
+      "mrr_typical_high_in3_per_hr": 28.0,
+      "mrr_placeholder": "TODO_REPLACE",
+      "cost_usd_per_in3": 0.18,
+      "cost_placeholder": "TODO_REPLACE",
+      "enabled": true
+    },
+    "uhmw": {
+      "label": "UHMW",
+      "family": "plastic",
+      "aliases": [
+        "uhmw-pe",
+        "uhmwpe"
+      ],
+      "mrr_eff_in3_per_hr": 22.0,
+      "mrr_typical_low_in3_per_hr": 12.0,
+      "mrr_typical_high_in3_per_hr": 32.0,
+      "mrr_placeholder": "TODO_REPLACE",
+      "cost_usd_per_in3": 0.18,
+      "cost_placeholder": "TODO_REPLACE",
+      "enabled": true
+    },
+    "acrylic": {
+      "label": "Acrylic",
+      "family": "plastic",
+      "aliases": [
+        "pmma",
+        "plexiglass"
+      ],
+      "mrr_eff_in3_per_hr": 16.0,
+      "mrr_typical_low_in3_per_hr": 10.0,
+      "mrr_typical_high_in3_per_hr": 24.0,
+      "mrr_placeholder": "TODO_REPLACE",
+      "cost_usd_per_in3": 0.18,
+      "cost_placeholder": "TODO_REPLACE",
+      "enabled": true
+    },
+    "pvc": {
+      "label": "PVC",
+      "family": "plastic",
+      "aliases": [],
+      "mrr_eff_in3_per_hr": 20.0,
+      "mrr_typical_low_in3_per_hr": 12.0,
+      "mrr_typical_high_in3_per_hr": 28.0,
+      "mrr_placeholder": "TODO_REPLACE",
+      "cost_usd_per_in3": 0.18,
+      "cost_placeholder": "TODO_REPLACE",
+      "enabled": true
+    }
+  },
+  "unsupported": {
+    "finishes": true,
+    "five_axis": true,
+    "turning": true
+  }
+}

@@ -1,0 +1,5 @@
+.local-inbox/
+.local-jobs/
+__pycache__/
+.pytest_cache/
+.venv/

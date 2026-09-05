@@ -1,0 +1,40 @@
+{
+  "job_id": "MHL-20260905T143000Z",
+  "rfq_id": "20260905T143000Z",
+  "customer_name": "Example buyer",
+  "customer_email": "buyer@example.com",
+  "estimate_low_usd": 109.82,
+  "estimate_high_usd": 161.50,
+  "bid_usd": 145.00,
+  "deposit_usd": 60.00,
+  "chase_payment_url": "https://secure.chase.com/example-payment-request",
+  "workflow_status": "bid_sent",
+  "payment_status": "unpaid",
+  "notes": "EXAMPLE ONLY. Estimate band is not the bid. Deposit is a materials+tooling floor, not a fixed percent.",
+  "source": "quotes@",
+  "source_inbox": null,
+  "quotes_inbox": "quotes@machinehacklabs.com",
+  "created_at": "2026-09-05T14:30:00Z",
+  "updated_at": "2026-09-05T15:10:00Z",
+  "history": [
+    {
+      "at": "2026-09-05T14:30:00Z",
+      "workflow_status": "estimated",
+      "payment_status": "unpaid",
+      "note": "created after quotes@ received the RFQ"
+    },
+    {
+      "at": "2026-09-05T15:10:00Z",
+      "workflow_status": "bid_sent",
+      "payment_status": "unpaid",
+      "note": "The shop pasted a Chase link it created; paying it accepts scope/price"
+    }
+  ],
+  "policy": [
+    "Estimate band is a shop rough range, not the customer bid.",
+    "The shop sets the bid after quotes@ review. Deposit is a materials+tooling floor, not a fixed percent.",
+    "Paste a Chase payment URL the shop created. No Chase API. No card capture on machinehacklabs.com.",
+    "Customer payment of that link is acceptance of the stated scope and price.",
+    "Deposit first, then balance, then ship. Scrap is not billed to the customer."
+  ]
+}
