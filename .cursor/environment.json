@@ -1,0 +1,15 @@
+{
+  "name": "Machine Hack Labs Website",
+  "terminals": [
+    {
+      "name": "static-server",
+      "command": "python3 -m http.server 8080 --bind 0.0.0.0"
+    }
+  ],
+  "ports": [
+    {
+      "name": "Website",
+      "port": 8080
+    }
+  ]
+}
