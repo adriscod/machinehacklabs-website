@@ -77,12 +77,18 @@ def test_thanks_and_home_do_not_contradict_customer_estimate() -> None:
     assert "estimate range is shown on the quote page" in privacy
     assert "not a final bid" in privacy
     assert "andrew" not in caps
-    assert "shop placeholders" in caps
+    assert "tormach" not in caps
+    assert "1500mx" not in caps
+    assert "cnc milling" in caps
+    assert "19.7" in caps and "13.8" in caps and "14" in caps
     assert "cnc milling for real parts" in home
     assert "href=\"/quote/\"" in (REPO / "index.html").read_text(encoding="utf-8")
     assert "shop-only" not in home
     assert "chase" not in home
     assert "$75" not in home
+    assert "<h2>machine</h2>" not in home
+    assert "in scope" not in home
+    assert "out of scope" not in home
 
 
 def test_bid_email_template_is_pay_to_accept() -> None:
@@ -228,9 +234,12 @@ def test_capabilities_and_work_use_shop_photos_and_scope() -> None:
     work = (REPO / "work" / "index.html").read_text(encoding="utf-8")
     home = (REPO / "index.html").read_text(encoding="utf-8")
     assert "19.7" in caps and "13.8" in caps and "14" in caps
-    assert "no finishes" in caps.lower()
-    assert "5-axis" in caps.lower()
-    assert "turning" in caps.lower()
+    assert "cnc milling" in caps.lower()
+    assert "tormach" not in caps.lower()
+    assert "1500mx" not in caps.lower()
+    assert "<h2>Machine</h2>" not in caps
+    assert "<h2>Materials</h2>" not in caps
+    assert "<h2>Out of scope</h2>" not in caps
     assert "/assets/img/site/01-hero-probe-on-part.jpg" in home
     assert "/assets/img/site/02-capabilities-cutting.jpg" in caps
     assert "/assets/img/site/03-capabilities-coolant.jpg" in caps
