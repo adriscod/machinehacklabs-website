@@ -138,7 +138,68 @@ def test_readme_documents_shop_job_tracker() -> None:
 
 
 def test_marketing_pages_do_not_link_shop_tracker() -> None:
-    for rel in ("index.html", "quote/index.html", "thanks/index.html"):
+    for rel in (
+        "index.html",
+        "quote/index.html",
+        "thanks/index.html",
+        "capabilities/index.html",
+        "work/index.html",
+        "contact/index.html",
+        "privacy/index.html",
+    ):
         html = (REPO / rel).read_text(encoding="utf-8")
         assert 'href="/__shop' not in html
         assert "<h1>Shop job tracker" not in html
+
+
+def test_site_nav_and_footer_on_customer_pages() -> None:
+    pages = {
+        "index.html": "/",
+        "capabilities/index.html": "/capabilities/",
+        "work/index.html": "/work/",
+        "quote/index.html": "/quote/",
+        "thanks/index.html": "/thanks/",
+        "contact/index.html": "/contact/",
+        "privacy/index.html": "/privacy/",
+    }
+    for rel in pages:
+        html = (REPO / rel).read_text(encoding="utf-8")
+        assert 'href="/capabilities/"' in html
+        assert 'href="/work/"' in html
+        assert 'href="/quote/"' in html
+        assert 'href="/privacy/"' in html
+        assert "© 2026 Machine Hack Labs" in html
+        assert "quotes@machinehacklabs.com" in html
+        assert "#121212" not in html
+
+
+def test_contact_is_quotes_and_quote_link_only() -> None:
+    html = (REPO / "contact" / "index.html").read_text(encoding="utf-8")
+    assert "<form" not in html.lower()
+    assert 'href="/quote/"' in html
+    assert "quotes@machinehacklabs.com" in html
+    assert "no second form" in html.lower()
+
+
+def test_capabilities_and_work_use_shop_photos_and_scope() -> None:
+    caps = (REPO / "capabilities" / "index.html").read_text(encoding="utf-8")
+    work = (REPO / "work" / "index.html").read_text(encoding="utf-8")
+    home = (REPO / "index.html").read_text(encoding="utf-8")
+    assert "19.7" in caps and "13.8" in caps and "14" in caps
+    assert "no finishes" in caps.lower()
+    assert "5-axis" in caps.lower()
+    assert "turning" in caps.lower()
+    assert "/assets/img/site/01-hero-probe-on-part.jpg" in home
+    assert "/assets/img/site/02-capabilities-1500mx-cutting.jpg" in caps
+    assert "/assets/img/site/03-capabilities-1500mx-coolant.jpg" in caps
+    assert "/assets/img/site/04-work-cutting-action.jpg" in work
+    assert "/assets/img/site/05-work-coolant-spray.jpg" in work
+    assert "finish" not in work.lower() or "not finish" in work.lower()
+
+
+def test_privacy_skeleton_covers_rfq_and_no_cards() -> None:
+    html = (REPO / "privacy" / "index.html").read_text(encoding="utf-8").lower()
+    assert "formsubmit" in html
+    assert "quotes@machinehacklabs.com" in html
+    assert "no cards" in html
+    assert "skeleton" in html
