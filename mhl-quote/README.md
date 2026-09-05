@@ -1,168 +1,94 @@
-# mhl-quote
+# mhl-quote (calibration helper)
 
-Local, Windows-friendly CNC **rough-quote** estimator for Machine Hack Labs.
+The **customer product** is the website RFQ form at `/quote/`, which emails
+**quotes@machinehacklabs.com**. This folder is the shop-side helper:
 
-This is **not** the marketing site, not an RFQ inbox, and not a published product.
-It runs on your machine: `STEP`/`STL` → axis-aligned bounding box as stock →
-part volume → removal → hours at **$75/hr** + material pass-through → **quote range**.
+- YAML source of truth for the cost model
+- CLI for STEP solid volume (CadQuery) and MRR calibration
+- Local site server that captures RFQs **without sending email**
 
-Ticket: **MHL-CF-001**. Shop machine: **Tormach 1500MX** (3-axis mill only).
+Ticket: **MHL-CF-001**. Machine: **Tormach 1500MX** (3-axis mill only).
 
-## What it does
+## Website (primary)
 
-1. Reads a solid (`STEP` preferred, `STL` accepted).
-2. Measures AABB (stock) and solid volume (part).
-3. `removal = max(0, stock_box − part)`.
-4. `cut_hours = removal / MRR_eff`.
-5. `labor = (setup_hours + cut_hours) × shop_rate`.
-6. `materials = stock purchase` (pass-through at Andrew's cost; **no scrap adder**).
-7. `raw = max(materials + labor, min_charge)`.
-8. Prints **`raw × 0.85` – `raw × 1.25`**. Never a single-dollar quote.
-
-If the stock box exceeds usable 1500MX travel (envelope minus fixture margin),
-the job is **hard-rejected** and no customer range is emitted.
-
-## What it will not do
-
-- Finishes, turning, 5-axis, or full CAM/toolpath simulation
-- Xometry-style marketplace pricing
-- RFQ email/form wiring (intentionally skipped)
-- Cloud calls or secrets
-- Personality / marketing automation
-
-`--finish`, `--five-axis` / `--5-axis`, and `--turning` / `--lathe` exist only
-so those requests **fail closed**.
-
-## Windows setup
-
-Needs **Python 3.10+** (3.12 is fine). From Command Prompt or PowerShell:
+From the repo root:
 
 ```bat
-cd path\to\machinehacklabs-website\mhl-quote
+python mhl-quote\dev_rfq_server.py
+```
+
+Open http://127.0.0.1:8765/quote/
+
+Local submits go to `mhl-quote/.local-inbox/` and **do not** email quotes@.
+Live delivery (after publish, not this draft) uses FormSubmit to
+`quotes@machinehacklabs.com`. See the repo README.
+
+After editing `config/quote.yaml`:
+
+```bat
+python mhl-quote\scripts\export_site_config.py
+```
+
+## CLI (helper)
+
+```bat
+cd mhl-quote
 python -m venv .venv
 .venv\Scripts\activate
 python -m pip install -r requirements.txt
+python -m mhl_quote samples\demo_block.stl --material aluminum
 ```
 
-STL quoting works after that. For **STEP** (preferred):
+STEP volume (preferred for confirming a web high-side estimate):
 
 ```bat
 python -m pip install -r requirements-step.txt
-```
-
-CadQuery pulls in OCP. If `pip` fails on Windows, use a current 64-bit CPython
-from python.org (not Store stubs) and retry. This tool does not need conda.
-
-Optional editable install (gives the `mhl-quote` command):
-
-```bat
-python -m pip install -e .
-```
-
-## How to run
-
-From the `mhl-quote` folder, with the venv active:
-
-```bat
-python -m mhl_quote samples\demo_block.stl --material aluminum
 python -m mhl_quote path\to\part.step --units mm --material steel
 ```
 
-Or `run.bat` (same arguments):
-
-```bat
-run.bat samples\demo_block.stl --material aluminum
-```
-
-Useful flags:
-
 | Flag | Purpose |
 | --- | --- |
-| `--units inch\|mm` | CAD units (STL is unitless; many STEP files are mm) |
+| `--units inch\|mm` | CAD units |
 | `--material aluminum\|steel\|…` | Catalog key or alias |
-| `--setup-hours 1.5` | Override default setup |
-| `--mrr 10` | Override MRR_eff (in³/hr) |
-| `--stock-x/y/z` | Override AABB stock, inches |
-| `--stock-cost 42.00` | Actual plate invoice (pass-through) |
+| `--qty 3` | Setup once; cut + catalog material scale |
+| `--setup-hours` / `--mrr` / `--stock-x/y/z` / `--stock-cost` | Overrides |
 | `--json` | Machine-readable result |
-| `--list-materials` | Dump the catalog |
-| `--show-config` | Dump resolved tunables |
-| `--config path` | Alternate YAML/JSON |
 
-Exit codes: `0` quoted, `2` rejected (envelope or unsupported process), `1` usage/error.
+`--finish`, `--five-axis`, `--turning` fail closed.
 
-## Config path
+## Cost model
 
-**Edit this file to calibrate the shop:**
+```
+stock_vol = bbox_x * bbox_y * bbox_z
+part_vol = solid volume
+removal_vol = max(0, stock_vol - part_vol)
+cut_hours = (removal_vol / MRR_eff) * qty
+labor = (setup_hours + cut_hours) * 75
+materials = catalog $/in³ * stock_vol * qty   (or --stock-cost invoice)
+raw = max(materials + labor, min_charge)
+range = raw * 0.85  …  raw * 1.25
+```
 
-`mhl-quote/config/quote.yaml`
-
-Tunables (locked model, editable numbers):
-
-- `shop.rate_usd_per_hr` (default 75)
-- `shop.setup_hours` (default 1.0)
-- `shop.min_charge_usd` (default 75)
-- `shop.band_low` / `band_high` (default 0.85 / 1.25)
-- `machine.envelope_in` `{19.7, 13.8, 14.0}` plus `fixture_margin_in`
-- `materials.*.mrr_eff_in3_per_hr` and `cost_usd_per_in3`
-
-JSON configs are also accepted (`--config quote.json`). Do not put secrets,
-API keys, or customer PII in the config.
-
-Replace catalog `cost_usd_per_in3` with Andrew's real stock cost, or pass
-`--stock-cost` per job so the invoice is passed through exactly.
+Scrap is not billed. Always a range.
 
 ## How to calibrate MRR
 
-`MRR_eff` is **not** a catalog cutting-data number. It is the shop's effective
-cubic inches per *paid chip-making hour* (tool changes, pecks, and conservative
-feeds already baked in).
-
-1. Pick a finished 3-axis job you would actually take again.
-2. From the CAD: run this tool, note `Removal` (in³). Or measure stock box − part volume.
-3. From the traveler: chip-making hours only (exclude quote time, degrease, packing).
+1. Take a finished 3-axis job.
+2. Run the CLI (or use the web bbox/volume) and note removal in³.
+3. Chip-making hours only from the traveler.
 4. `actual_mrr = removal_in3 / actual_cut_hours`.
-5. Average a few aluminum jobs and a few steel jobs separately.
-6. Put a **slightly conservative** (lower) number in `mrr_eff_in3_per_hr`.
-7. Re-run those past jobs. The real invoice should land inside the 0.85–1.25 band.
-   If you are consistently high, raise MRR. If consistently low, drop it.
+5. Average aluminum and steel separately; put a slightly conservative number
+   in `config/quote.yaml` → `mrr_eff_in3_per_hr`.
+6. Re-export site JSON. Past jobs should land in the 0.85–1.25 band.
 
-Starting bands in the default config (labeled tunable):
-
-- Aluminum: ~8–15 in³/hr (default 12)
-- Steel: ~3–8 in³/hr (default 5)
-
-Do not chase single-dollar precision. If a job is thin-wall, heavily fixtured,
-or mostly drilling, override `--mrr` / `--setup-hours` on that run instead of
-poisoning the catalog.
-
-## Envelope
-
-Tormach 1500MX travels: **X 19.7 in, Y 13.8 in, Z 14.0 in**.
-Usable travel subtracts `fixture_margin_in` (default 0.5 in each axis).
-Over-travel → reject. A 90° remapping note is informational only; the
-as-imported orientation is what is accepted or rejected.
+Starting bands: aluminum ~8–15 in³/hr (default 12); steel ~3–8 (default 5).
 
 ## Tests
 
 ```bat
 python -m pip install pytest
 python -m pytest
+node --test ..\assets\js\estimator.test.mjs
 ```
 
-STEP tests skip automatically when CadQuery is not installed.
-
-## Layout
-
-```
-mhl-quote/                 ← this tool (keep it out of the website app)
-  config/quote.yaml        ← the one editable shop file
-  mhl_quote/               ← Python package
-  samples/demo_block.stl   ← 2.0 × 1.5 × 0.75 in solid, inches
-  tests/
-  requirements.txt         ← STL + cost model
-  requirements-step.txt    ← CadQuery/OCP
-  run.bat
-```
-
-v1 is local-only. Do not deploy or publish this package until Andrew says so.
+Do not deploy or publish until Andrew says so.

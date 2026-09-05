@@ -43,6 +43,9 @@ def compute_cost(
     quote_high = raw_quote * band_high
     """
     overrides = overrides or JobOverrides()
+    qty = overrides.qty if overrides.qty is not None else 1
+    if qty < 1:
+        raise ValueError("qty must be >= 1")
     stock_dims = overrides.stock_dims_in or bbox_in
     stock_vol = max(0.0, stock_dims.volume())
     part_vol = max(0.0, part_volume_in3)
@@ -58,14 +61,16 @@ def compute_cost(
     if setup < 0:
         raise ValueError("setup_hours must be >= 0")
 
-    cut = 0.0 if removal_vol == 0 else removal_vol / mrr
+    cut_each = 0.0 if removal_vol == 0 else removal_vol / mrr
+    cut = cut_each * qty
     labor = (setup + cut) * config.shop.rate_usd_per_hr
 
     if overrides.stock_purchase_cost_usd is not None:
+        # Invoice override is the job's stock pass-through (not multiplied).
         material_usd = overrides.stock_purchase_cost_usd
         catalog_estimate = False
     else:
-        material_usd = stock_vol * material.cost_usd_per_in3
+        material_usd = stock_vol * material.cost_usd_per_in3 * qty
         catalog_estimate = True
 
     raw = money(max(material_usd + labor, config.shop.min_charge_usd))

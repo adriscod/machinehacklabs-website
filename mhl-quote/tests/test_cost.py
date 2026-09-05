@@ -100,6 +100,26 @@ def test_overrides_stock_mrr_setup_and_invoice() -> None:
     assert cost.quote_high_usd == 327.81
 
 
+def test_qty_scales_cut_and_catalog_material_not_setup() -> None:
+    config = load_config(CONFIG)
+    material = config.materials["aluminum"]
+    cost = compute_cost(
+        config=config,
+        material=material,
+        bbox_in=Vec3(4, 3, 1),
+        part_volume_in3=4.0,
+        overrides=JobOverrides(qty=3),
+    )
+    # one setup; cut 8/12 * 3 = 2.0 hr; labor 225; mat 12.60; raw 237.60
+    assert cost.cut_hours == 2.0
+    assert cost.setup_hours == 1.0
+    assert cost.labor_usd == 225.00
+    assert cost.material_usd == 12.60
+    assert cost.raw_quote_usd == 237.60
+    assert cost.quote_low_usd == 201.96
+    assert cost.quote_high_usd == 297.00
+
+
 def test_no_scrap_multiplier() -> None:
     config = load_config(CONFIG)
     material = config.materials["aluminum"]

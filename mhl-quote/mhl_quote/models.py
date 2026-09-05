@@ -130,6 +130,7 @@ class JobOverrides:
     mrr_eff_in3_per_hr: float | None = None
     stock_dims_in: Vec3 | None = None
     stock_purchase_cost_usd: float | None = None
+    qty: int = 1
 
 
 @dataclass(frozen=True)

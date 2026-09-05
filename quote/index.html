@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request a quote — Machine Hack Labs</title>
+    <link rel="stylesheet" href="/assets/css/site.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="wrap">
+            <a class="brand" href="/">Machine Hack Labs</a>
+            <nav class="nav" aria-label="Primary">
+                <a href="/">Home</a>
+                <a href="/quote/" aria-current="page">Request a quote</a>
+            </nav>
+        </div>
+    </header>
+    <main class="wrap">
+        <div class="page-head">
+            <h1>Request a quote</h1>
+            <p class="lede">
+                Machining-only 3-axis on the 1500MX. Upload STEP (preferred) or STL.
+                The form emails <strong>quotes@machinehacklabs.com</strong> with your
+                fields, file, and an internal rough range. That range is not a customer quote.
+            </p>
+            <p class="hint" id="delivery-badge">Configuring delivery…</p>
+        </div>
+
+        <div class="rfq-grid">
+            <form id="rfq-form" class="form-card" action="/__local_rfq" method="post" enctype="multipart/form-data">
+                <label for="name">Name</label>
+                <input id="name" name="name" required autocomplete="name">
+
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" required autocomplete="email">
+
+                <label for="phone">Phone (optional)</label>
+                <input id="phone" name="phone" type="tel" autocomplete="tel">
+
+                <div class="row-2">
+                    <div>
+                        <label for="material">Material</label>
+                        <select id="material" name="material" required>
+                            <option value="aluminum">Aluminum</option>
+                            <option value="steel">Steel (within 1500MX capability)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="qty">Quantity</label>
+                        <input id="qty" name="qty" type="number" min="1" step="1" value="1" required>
+                    </div>
+                </div>
+
+                <div class="row-2">
+                    <div>
+                        <label for="due_date">Due date</label>
+                        <input id="due_date" name="due_date" type="date" required>
+                    </div>
+                    <div>
+                        <label for="units">CAD units</label>
+                        <select id="units" name="units">
+                            <option value="inch">Inches</option>
+                            <option value="mm">Millimeters</option>
+                        </select>
+                        <p class="hint">STL defaults to inches; STEP often mm. Wrong units scale the box by 25.4×.</p>
+                    </div>
+                </div>
+
+                <label for="cad_file">Part file (STEP or STL)</label>
+                <input id="cad_file" name="attachment" type="file" accept=".step,.stp,.stl,application/sla,model/step" required>
+                <p class="hint">Max 8&nbsp;MB on the email path. Prefer a watertight solid.</p>
+
+                <label for="tolerances">Critical tolerances / notes</label>
+                <textarea id="tolerances" name="tolerances" required placeholder="Fits, threads, datums, inspection needs, fixture constraints…"></textarea>
+
+                <p class="hint">
+                    This shop does not quote finishes, turning, or 5-axis. Do not request them here.
+                </p>
+
+                <label class="hp" for="company_website">Company website</label>
+                <input class="hp" id="company_website" name="company_website" tabindex="-1" autocomplete="off">
+
+                <input type="hidden" name="_to" value="quotes@machinehacklabs.com">
+                <input type="hidden" name="_subject" value="MHL RFQ — review required before customer reply">
+                <input type="hidden" name="_template" value="table">
+                <input type="hidden" name="_captcha" value="false">
+                <input type="hidden" name="_autoresponse" value="">
+                <input type="hidden" name="_next" value="">
+                <input type="hidden" name="quotes_inbox" value="quotes@machinehacklabs.com">
+                <input type="hidden" name="process_scope" value="machining-only 3-axis mill; no finishes, turning, or 5-axis">
+                <input type="hidden" name="shop_review_required" value="">
+                <input type="hidden" name="estimator_status" value="">
+                <input type="hidden" name="envelope_fits" value="">
+                <input type="hidden" name="over_travel_axes" value="">
+                <input type="hidden" name="bbox_x_in" value="">
+                <input type="hidden" name="bbox_y_in" value="">
+                <input type="hidden" name="bbox_z_in" value="">
+                <input type="hidden" name="part_volume_in3" value="">
+                <input type="hidden" name="cad_format" value="">
+                <input type="hidden" name="quote_range_usd" value="">
+                <input type="hidden" name="quote_low_usd" value="">
+                <input type="hidden" name="quote_high_usd" value="">
+                <input type="hidden" name="raw_quote_usd" value="">
+                <input type="hidden" name="labor_usd" value="">
+                <input type="hidden" name="material_usd" value="">
+                <input type="hidden" name="removal_volume_in3" value="">
+                <input type="hidden" name="cut_hours" value="">
+                <input type="hidden" name="setup_hours" value="">
+                <input type="hidden" name="step_volume_pending" value="">
+                <input type="hidden" name="high_side_estimate" value="">
+                <input type="hidden" name="rejection_reasons" value="">
+
+                <p class="err" id="form-error" role="alert"></p>
+                <button class="btn" id="submit-rfq" type="submit" disabled>Send RFQ to quotes@</button>
+            </form>
+
+            <aside class="panel estimate" id="estimate-panel" aria-live="polite">
+                <h2>Shop rough range</h2>
+                <p class="hint">Upload a STEP or STL to run the estimator.</p>
+            </aside>
+        </div>
+    </main>
+    <footer class="site-footer">
+        <div class="wrap">
+            <span>Internal range is shop-only. Customer reply waits on Andrew.</span>
+            <span>quotes@machinehacklabs.com</span>
+        </div>
+    </footer>
+    <script type="module" src="/assets/js/rfq-form.js"></script>
+</body>
+</html>

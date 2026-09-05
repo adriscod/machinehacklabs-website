@@ -24,8 +24,9 @@ def build_parser() -> argparse.ArgumentParser:
             "Always prints a range. Machining-only 3-axis (Tormach 1500MX)."
         ),
         epilog=(
-            "Do not use this tool for finishes, turning, or 5-axis. "
-            "RFQ email/form wiring is intentionally not included."
+            "Calibration helper only. Customer RFQs go through the website form "
+            "to quotes@machinehacklabs.com. Do not use this tool for finishes, "
+            "turning, or 5-axis."
         ),
     )
     parser.add_argument(
@@ -85,6 +86,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="USD",
         help="Actual stock purchase (pass-through). Replaces catalog $/in³ estimate.",
+    )
+    parser.add_argument(
+        "--qty",
+        type=int,
+        default=1,
+        help="Quantity (setup once; cut hours and catalog material scale)",
     )
     parser.add_argument(
         "--json",
@@ -157,6 +164,8 @@ def main(argv: list[str] | None = None) -> int:
         requested.append(UnsupportedProcess.TURNING)
 
     try:
+        if args.qty < 1:
+            raise ValueError("qty must be >= 1")
         stock_dims = _stock_override(args)
         find_material(config, args.material)
         result = estimate_quote(
@@ -169,6 +178,7 @@ def main(argv: list[str] | None = None) -> int:
                 mrr_eff_in3_per_hr=args.mrr,
                 stock_dims_in=stock_dims,
                 stock_purchase_cost_usd=args.stock_cost,
+                qty=args.qty,
             ),
             requested_processes=requested,
         )

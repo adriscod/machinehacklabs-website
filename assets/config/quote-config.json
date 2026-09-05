@@ -1,0 +1,59 @@
+{
+  "shop": {
+    "rate_usd_per_hr": 75,
+    "setup_hours": 1.0,
+    "min_charge_usd": 75,
+    "band_low": 0.85,
+    "band_high": 1.25
+  },
+  "machine": {
+    "name": "Tormach 1500MX",
+    "axes": 3,
+    "envelope_in": {
+      "x": 19.7,
+      "y": 13.8,
+      "z": 14.0
+    },
+    "fixture_margin_in": {
+      "x": 0.5,
+      "y": 0.5,
+      "z": 0.5
+    }
+  },
+  "materials": {
+    "aluminum": {
+      "label": "Aluminum (6061 typical)",
+      "family": "aluminum",
+      "aliases": [
+        "al",
+        "alum",
+        6061,
+        "6061-t6",
+        "aluminium"
+      ],
+      "mrr_eff_in3_per_hr": 12.0,
+      "mrr_typical_low_in3_per_hr": 8.0,
+      "mrr_typical_high_in3_per_hr": 15.0,
+      "cost_usd_per_in3": 0.35
+    },
+    "steel": {
+      "label": "Steel (mild / 1018 typical)",
+      "family": "steel",
+      "aliases": [
+        1018,
+        "mild",
+        "mild-steel",
+        "crs"
+      ],
+      "mrr_eff_in3_per_hr": 5.0,
+      "mrr_typical_low_in3_per_hr": 3.0,
+      "mrr_typical_high_in3_per_hr": 8.0,
+      "cost_usd_per_in3": 0.28
+    }
+  },
+  "unsupported": {
+    "finishes": true,
+    "five_axis": true,
+    "turning": true
+  }
+}
