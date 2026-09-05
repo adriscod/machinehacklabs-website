@@ -150,6 +150,15 @@ textarea:focus-visible {
   padding: 2rem 0 1rem;
 }
 
+.terms {
+  max-width: 40rem;
+  margin: 1rem 0 0;
+}
+
+.terms p {
+  margin: 0;
+}
+
 .rfq-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);

@@ -23,6 +23,12 @@ Local submits go to `mhl-quote/.local-inbox/` and **do not** email quotes@.
 Live delivery (after publish, not this draft) uses FormSubmit to
 `quotes@machinehacklabs.com`. See the repo README.
 
+Customer-facing copy: the website estimate is not a final bid. Andrew
+sends a bid from `templates/bid-email.txt` (scope, materials+tooling
+deposit, pasted Chase payment / invoice URL). Paying that link accepts
+the stated scope and price. Deposit then balance before ship. No Chase
+API and no card capture on the site. Scrap is not billed.
+
 After editing `config/quote.yaml`:
 
 ```bat

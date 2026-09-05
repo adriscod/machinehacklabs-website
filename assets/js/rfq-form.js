@@ -30,8 +30,8 @@ function renderEstimate(result) {
   lastEstimate = result;
   if (!result) {
     estimateBox.innerHTML = `
-      <h2>Shop rough range</h2>
-      <p class="hint">Upload a STEP or STL to run the estimator. The dollar range is for Andrew — it is not a customer quote.</p>
+      <h2>Shop-only rough range</h2>
+      <p class="hint">Upload a STEP or STL to run the estimator. Any dollar band here is shop-only — not a final bid, and not something you accept on this page.</p>
     `;
     return;
   }
@@ -47,10 +47,10 @@ function renderEstimate(result) {
     statusHtml = `<p class="status-bad">OVER-TRAVEL — no customer range. RFQ can still go to quotes@ so Andrew can review.</p>`;
     rangeHtml = `<p class="range status-bad">Rejected</p>`;
   } else if (high) {
-    statusHtml = `<p class="status-warn">STEP volume pending shop measurement. High-side range only.</p>`;
+    statusHtml = `<p class="status-warn">STEP volume pending shop measurement. Shop-only high-side range — not a final bid.</p>`;
     rangeHtml = `<p class="range">${moneyText(high.quote_low_usd)} – ${moneyText(high.quote_high_usd)}</p>`;
   } else if (cost) {
-    statusHtml = `<p class="status-ok">Fits 1500MX usable travel. Internal range — Andrew reviews before reply.</p>`;
+    statusHtml = `<p class="status-ok">Fits 1500MX usable travel. Shop-only range — not a final bid. Andrew reviews before reply.</p>`;
     rangeHtml = `<p class="range">${moneyText(cost.quote_low_usd)} – ${moneyText(cost.quote_high_usd)}</p>`;
   } else {
     statusHtml = `<p>Waiting for geometry.</p>`;
@@ -59,10 +59,10 @@ function renderEstimate(result) {
 
   const bbox = geo?.bbox_in;
   estimateBox.innerHTML = `
-    <h2>Shop rough range</h2>
+    <h2>Shop-only rough range</h2>
     ${statusHtml}
     ${rangeHtml}
-    <p class="hint">Not a formal quote. Never a single-dollar number.</p>
+    <p class="hint">Shop-only range — not a final bid. Acceptance is paying the Chase link in Andrew’s bid email.</p>
     <dl>
       <dt>File</dt><dd>${geo?.filename || "—"} (${geo?.format || "—"})</dd>
       <dt>BBox</dt><dd>${bbox ? `${bbox.x.toFixed(3)} × ${bbox.y.toFixed(3)} × ${bbox.z.toFixed(3)} in` : "—"}</dd>

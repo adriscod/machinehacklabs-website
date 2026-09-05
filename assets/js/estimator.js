@@ -357,7 +357,7 @@ export function estimateFromGeometry({ config, materialName, geometry, qty = 1 }
     callouts: [
       "Machining-only 3-axis mill (Tormach 1500MX). No finishes, turning, or 5-axis.",
       "Materials are pass-through at shop cost. Scrap is absorbed by the shop — not billed.",
-      "This is a range, not a single-dollar quote. Andrew reviews before any customer reply.",
+      "This is a shop-only range, not a final bid. Paying Andrew's Chase payment link accepts the stated scope and price.",
       ...(geometry.notes || []),
       ...(envelope.rotation_note ? [envelope.rotation_note] : []),
     ],

@@ -57,6 +57,22 @@ That writes `assets/config/quote-config.json` for the website.
 `mhl-quote/` remains a **calibration / STEP-volume** helper (`python -m mhl_quote`).
 It is not the customer product. See `mhl-quote/README.md`.
 
+## Bid / accept email (shop)
+
+After quotes@ receives an RFQ, Andrew sends (or resends) a bid from
+`mhl-quote/templates/bid-email.txt`:
+
+1. Fill scope, total bid, and the materials+tooling deposit (a floor, not a
+   fixed percent).
+2. Create a Chase payment link or invoice URL in whatever accept tool he
+   uses, then paste that URL into `{CHASE_PAYMENT_LINK}`. Product name TBD —
+   treat it as a pasteable URL. **No Chase API. No card capture on this site.**
+3. Send from quotes@. Paying the link accepts the stated scope and price.
+   Deposit now; remaining balance before ship. No installments. Scrap is not
+   billed.
+
+The `/quote/` estimator band is shop-only and is not a final bid.
+
 ## Publish policy
 
 Do not merge or deploy this RFQ path until Andrew says so.
