@@ -22,30 +22,60 @@ def test_quote_page_is_quotes_inbox_and_machining_only() -> None:
     assert 'name="finish"' not in html
 
 
-def test_quote_page_estimate_is_not_bid_and_pay_link_accepts() -> None:
-    lower = QUOTE_HTML.lower()
+def _visible_html(html: str) -> str:
+    return re.sub(r"<!--.*?-->", "", html, flags=re.S).lower()
+
+
+def test_quote_page_estimate_is_customer_visible_not_final_bid() -> None:
+    lower = _visible_html(QUOTE_HTML)
+    assert "estimate" in lower
     assert "not a final bid" in lower
-    assert "shop-only" in lower
-    assert "paying that link accepts the stated scope and price" in lower
-    assert "chase payment link" in lower
-    assert "deposit now" in lower
-    assert "no installment" in lower
-    assert "scrap is not billed" in lower
-    assert "does not take cards" in lower
+    assert "shop-only" not in lower
+    assert "for andrew only" not in lower
+    assert "shop-only range for andrew" not in lower
+    assert "not a customer bid" not in lower
+    assert "payment link arrives in andrew" in lower
+    assert "does not take payment" in lower
     assert 'type="tel"' in QUOTE_HTML  # phone, not a card field
     assert "card number" not in lower
     assert "card-number" not in lower
     assert 'name="card"' not in lower
+    assert 'name="card_number"' not in lower
+    assert "chase" not in lower  # no Chase widget / pay-to-accept UI on the form
 
 
-def test_thanks_and_home_state_estimate_vs_accept() -> None:
+def test_rfq_panel_copy_is_customer_visible_estimate() -> None:
+    js = (REPO / "assets" / "js" / "rfq-form.js").read_text(encoding="utf-8")
+    estimator = (REPO / "assets" / "js" / "estimator.js").read_text(encoding="utf-8")
+    assert "Shop-only" not in js
+    assert "shop-only" not in js
+    assert "<h2>Estimate range</h2>" in js
+    assert "This is an estimate — not a final bid." in js
+    assert "Andrew confirms from quotes@" in js
+    assert "A payment link arrives in that email" in js
+    assert "shop-only" not in estimator
+    assert "This is an estimate, not a final bid." in estimator
+
+
+def test_thanks_and_home_do_not_contradict_customer_estimate() -> None:
     thanks = (REPO / "thanks" / "index.html").read_text(encoding="utf-8").lower()
     home = (REPO / "index.html").read_text(encoding="utf-8").lower()
+    privacy = (REPO / "privacy" / "index.html").read_text(encoding="utf-8").lower()
     assert "not a final bid" in thanks
-    assert "paying that link accepts the stated scope and price" in thanks
+    assert "estimate you saw on the form" in thanks
     assert "does not take payment" in thanks
-    assert "not a final bid" in home
-    assert "chase payment link accepts the stated scope and price" in home
+    assert "does not show pricing" in thanks
+    assert "shop-only" not in thanks
+    assert "payment link arrives in andrew" in thanks
+    assert "shop-only" not in privacy
+    assert "not a customer quote" not in privacy
+    assert "estimate range is shown on the quote page" in privacy
+    assert "not a final bid" in privacy
+    assert "cnc milling for real parts" in home
+    assert "href=\"/quote/\"" in (REPO / "index.html").read_text(encoding="utf-8")
+    assert "shop-only" not in home
+    assert "chase" not in home
+    assert "$75" not in home
 
 
 def test_bid_email_template_is_pay_to_accept() -> None:
@@ -73,7 +103,8 @@ def test_readme_and_autoresponse_cover_template_usage() -> None:
     auto = rfq["autoresponse"].lower()
     assert "not a final bid" in auto
     assert "does not include pricing" in auto
-    assert "paying the chase payment link" in auto
+    assert "payment link arrives in that email after you proceed" in auto
+    assert "shop-only" not in auto
 
 
 def _shop_hidden_keys() -> list[str]:

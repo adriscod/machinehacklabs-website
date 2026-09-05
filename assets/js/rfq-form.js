@@ -150,8 +150,8 @@ function renderEstimate(result) {
   lastEstimate = result;
   if (!result) {
     estimateBox.innerHTML = `
-      <h2>Shop-only rough range</h2>
-      <p class="hint">Upload a STEP or STL to run the estimator. Any dollar band here is shop-only — not a final bid, and not something you accept on this page.</p>
+      <h2>Estimate range</h2>
+      <p class="hint">Upload a STEP or STL to run the estimator. The dollar band here is an estimate — not a final bid, and not something you accept on this page.</p>
     `;
     writeShopHiddens(null);
     return;
@@ -168,10 +168,10 @@ function renderEstimate(result) {
     statusHtml = `<p class="status-bad">OVER-TRAVEL — no customer range. RFQ can still go to quotes@ so Andrew can review.</p>`;
     rangeHtml = `<p class="range status-bad">Rejected</p>`;
   } else if (high) {
-    statusHtml = `<p class="status-warn">STEP volume pending shop measurement. Shop-only high-side range — not a final bid.</p>`;
+    statusHtml = `<p class="status-warn">STEP volume pending shop measurement. High-side estimate — not a final bid.</p>`;
     rangeHtml = `<p class="range">${moneyText(high.quote_low_usd)} – ${moneyText(high.quote_high_usd)}</p>`;
   } else if (cost) {
-    statusHtml = `<p class="status-ok">Fits 1500MX usable travel. Shop-only range — not a final bid. Andrew reviews before reply.</p>`;
+    statusHtml = `<p class="status-ok">Fits 1500MX usable travel. Estimate range — not a final bid. Andrew confirms from quotes@.</p>`;
     rangeHtml = `<p class="range">${moneyText(cost.quote_low_usd)} – ${moneyText(cost.quote_high_usd)}</p>`;
   } else {
     statusHtml = `<p>Waiting for geometry.</p>`;
@@ -185,10 +185,10 @@ function renderEstimate(result) {
     : priced?.turnaround_applied || "—";
   const riskNote = (priced?.feature_risks || []).join(", ") || "none";
   estimateBox.innerHTML = `
-    <h2>Shop-only rough range</h2>
+    <h2>Estimate range</h2>
     ${statusHtml}
     ${rangeHtml}
-    <p class="hint">Shop-only range — not a final bid. Acceptance is paying the Chase link in Andrew’s bid email.</p>
+    <p class="hint">This is an estimate — not a final bid. Andrew confirms from quotes@ after you proceed. A payment link arrives in that email.</p>
     <dl>
       <dt>File</dt><dd>${geo?.filename || "—"} (${geo?.format || "—"})</dd>
       <dt>Material</dt><dd>${priced?.material_label || materialInput.value} · ${priced?.material_source || "—"}</dd>

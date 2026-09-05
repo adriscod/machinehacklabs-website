@@ -661,7 +661,7 @@ export function estimateFromGeometry({
   const callouts = [
     "Machining-only 3-axis mill (Tormach 1500MX). No finishes, turning, or 5-axis.",
     "Materials are pass-through at shop cost. Scrap is absorbed by the shop — not billed.",
-    "This is a shop-only range, not a final bid. Paying Andrew's Chase payment link accepts the stated scope and price.",
+    "This is an estimate, not a final bid. Andrew confirms from quotes@ after you proceed. A payment link arrives in that email.",
     "Catalog $/in³ and MRR_eff are TODO_REPLACE placeholders until Andrew replaces them.",
     ...(geometry.notes || []),
     ...(envelope.rotation_note ? [envelope.rotation_note] : []),

@@ -9,7 +9,7 @@ Subject: Machine Hack Labs — bid for {PART_OR_JOB}
 
 Hi {CUSTOMER_NAME},
 
-The website estimate was a shop-only rough band ({ESTIMATE_LOW_USD}–{ESTIMATE_HIGH_USD}). That estimate is not a final bid and is not what you accept.
+The website estimate was a rough band ({ESTIMATE_LOW_USD}–{ESTIMATE_HIGH_USD}). That estimate is not a final bid and is not what you accept.
 
 This email is the shop bid for the stated scope.
 

@@ -28,7 +28,7 @@ On the live site the form POSTs to
   Until he clicks that, mail will not land in quotes@.
 - FormSubmit's visitor autoresponse is configured to say the RFQ was received
   and that **this is not a quote** (no dollar amounts).
-- The internal range is only in the message to quotes@.
+- The estimate range is shown on `/quote/` and included in the message to quotes@.
 
 To use a different endpoint later (Formspree, a worker, etc.), edit
 `assets/config/rfq.json` → `productionFormAction`. Do not commit secrets.
@@ -107,7 +107,7 @@ After quotes@ receives an RFQ, Andrew sends (or resends) a bid from
    Deposit now; remaining balance before ship. No installments. Scrap is not
    billed.
 
-The `/quote/` estimator band is shop-only and is not a final bid.
+The `/quote/` estimator band is a customer-visible estimate and is not a final bid.
 
 ## Publish policy
 
