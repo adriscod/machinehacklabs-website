@@ -148,11 +148,8 @@ function readStockOverride() {
 
 function customerCallouts(callouts) {
   return (callouts || []).filter((raw) => {
-    const text = String(raw);
-    const lower = text.toLowerCase();
-    if (lower.includes("shop-only")) return false;
-    if (/\bandrew\b/i.test(text)) return false;
-    return true;
+    const lower = String(raw).toLowerCase();
+    return !lower.includes("shop-only");
   });
 }
 
