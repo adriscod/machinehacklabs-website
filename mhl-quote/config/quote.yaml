@@ -1,0 +1,51 @@
+# Machine Hack Labs — local rough-quote tunables (MHL-CF-001)
+# Edit this file to calibrate the shop. No secrets belong here.
+# All linear units are inches. Volumes are cubic inches. Money is USD.
+
+shop:
+  rate_usd_per_hr: 75          # labor only; materials are pass-through
+  setup_hours: 1.0             # default; override per job on the CLI
+  min_charge_usd: 75
+  band_low: 0.85               # quote_low = raw * band_low
+  band_high: 1.25              # quote_high = raw * band_high
+
+machine:
+  name: Tormach 1500MX
+  axes: 3
+  # Published travels. Usable = envelope − fixture_margin.
+  envelope_in:
+    x: 19.7
+    y: 13.8
+    z: 14.0
+  fixture_margin_in:
+    x: 0.5
+    y: 0.5
+    z: 0.5
+
+# Material catalog. Cost is Andrew's pass-through ($/in³ of AABB stock).
+# Scrap is absorbed by the shop — do not add a scrap multiplier.
+# MRR_eff is tunable. Start conservative; calibrate from finished jobs
+# (see README "How to calibrate MRR").
+materials:
+  aluminum:
+    label: Aluminum (6061 typical)
+    family: aluminum
+    aliases: [al, alum, 6061, 6061-t6, aluminium]
+    mrr_eff_in3_per_hr: 12.0          # typical shop band ~8–15 in³/hr
+    mrr_typical_low_in3_per_hr: 8.0
+    mrr_typical_high_in3_per_hr: 15.0
+    cost_usd_per_in3: 0.35            # replace with Andrew's real plate cost
+  steel:
+    label: Steel (mild / 1018 typical)
+    family: steel
+    aliases: [1018, mild, mild-steel, crs]
+    mrr_eff_in3_per_hr: 5.0           # typical shop band ~3–8 in³/hr
+    mrr_typical_low_in3_per_hr: 3.0
+    mrr_typical_high_in3_per_hr: 8.0
+    cost_usd_per_in3: 0.28            # replace with Andrew's real stock cost
+
+# Hard non-goals for this estimator. Do not add quote options for these.
+unsupported:
+  finishes: true
+  five_axis: true
+  turning: true
