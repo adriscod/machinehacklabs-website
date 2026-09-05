@@ -178,7 +178,7 @@ function renderEstimate(result) {
     statusHtml = `<p class="status-warn">STEP volume pending shop measurement. High-side estimate — not a final bid.</p>`;
     rangeHtml = `<p class="range">${moneyText(high.quote_low_usd)} – ${moneyText(high.quote_high_usd)}</p>`;
   } else if (cost) {
-    statusHtml = `<p class="status-ok">Fits 1500MX usable travel. Estimate range — not a final bid. The shop confirms from quotes@.</p>`;
+    statusHtml = `<p class="status-ok">Fits usable travel. Estimate range — not a final bid. The shop confirms from quotes@.</p>`;
     rangeHtml = `<p class="range">${moneyText(cost.quote_low_usd)} – ${moneyText(cost.quote_high_usd)}</p>`;
   } else {
     statusHtml = `<p>Waiting for geometry.</p>`;
