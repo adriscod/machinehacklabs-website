@@ -232,8 +232,8 @@ def test_capabilities_and_work_use_shop_photos_and_scope() -> None:
     assert "5-axis" in caps.lower()
     assert "turning" in caps.lower()
     assert "/assets/img/site/01-hero-probe-on-part.jpg" in home
-    assert "/assets/img/site/02-capabilities-1500mx-cutting.jpg" in caps
-    assert "/assets/img/site/03-capabilities-1500mx-coolant.jpg" in caps
+    assert "/assets/img/site/02-capabilities-cutting.jpg" in caps
+    assert "/assets/img/site/03-capabilities-coolant.jpg" in caps
     assert "/assets/img/site/04-work-cutting-action.jpg" in work
     assert "/assets/img/site/05-work-coolant-spray.jpg" in work
     assert "finish" not in work.lower() or "not finish" in work.lower()
