@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from mhl_quote.config import load_config
-from mhl_quote.cost import compute_cost
+from mhl_quote.cost import compute_cost, money
 from mhl_quote.models import JobOverrides, Vec3
 
 CONFIG = Path(__file__).resolve().parents[1] / "config" / "quote.yaml"
@@ -118,6 +118,12 @@ def test_qty_scales_cut_and_catalog_material_not_setup() -> None:
     assert cost.raw_quote_usd == 237.60
     assert cost.quote_low_usd == 201.96
     assert cost.quote_high_usd == 297.00
+
+
+def test_money_rounds_half_away_from_zero() -> None:
+    # Matches JS Math.round; Python banker's rounding would yield 215.62.
+    assert money(215.625) == 215.63
+    assert money(129.20) == 129.20
 
 
 def test_no_scrap_multiplier() -> None:

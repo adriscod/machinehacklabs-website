@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 from mhl_quote.job_inputs import (
     JobInputError,
     complexity_mult,
@@ -17,8 +19,11 @@ from mhl_quote.models import (
 
 
 def money(value: float) -> float:
-    """Round USD to cents for display and the published range."""
-    return round(value + 0.0, 2)
+    """Round USD to cents, half away from zero (matches JS Math.round)."""
+    scaled = value * 100.0
+    if scaled >= 0:
+        return round(math.floor(scaled + 0.5) / 100.0, 2)
+    return round(math.ceil(scaled - 0.5) / 100.0, 2)
 
 
 def hours(value: float) -> float:
