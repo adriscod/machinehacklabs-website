@@ -12,7 +12,6 @@ internal rough range). Andrew reviews before any customer reply.
 | --- | --- |
 | `/` | Shop intro + hero photo + link to the form |
 | `/capabilities/` | 1500MX envelope, in/out of scope, shop photos |
-| `/work/` | Shop photos (machining only) |
 | `/quote/` | RFQ form + in-browser estimator |
 | `/thanks/` | Confirmation (no pricing) |
 | `/contact/` | quotes@ + link to `/quote/` (no second form) |

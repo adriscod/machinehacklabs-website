@@ -191,7 +191,6 @@ def test_marketing_pages_do_not_link_shop_tracker() -> None:
         "quote/index.html",
         "thanks/index.html",
         "capabilities/index.html",
-        "work/index.html",
         "contact/index.html",
         "privacy/index.html",
     ):
@@ -204,7 +203,6 @@ def test_site_nav_and_footer_on_customer_pages() -> None:
     pages = {
         "index.html": "/",
         "capabilities/index.html": "/capabilities/",
-        "work/index.html": "/work/",
         "quote/index.html": "/quote/",
         "thanks/index.html": "/thanks/",
         "contact/index.html": "/contact/",
@@ -213,7 +211,6 @@ def test_site_nav_and_footer_on_customer_pages() -> None:
     for rel in pages:
         html = (REPO / rel).read_text(encoding="utf-8")
         assert 'href="/capabilities/"' in html
-        assert 'href="/work/"' in html
         assert 'href="/quote/"' in html
         assert 'href="/privacy/"' in html
         assert "© 2026 Machine Hack Labs" in html
