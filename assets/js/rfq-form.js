@@ -146,6 +146,16 @@ function readStockOverride() {
   return { x: nums[0], y: nums[1], z: nums[2] };
 }
 
+function customerCallouts(callouts) {
+  return (callouts || []).filter((raw) => {
+    const text = String(raw);
+    const lower = text.toLowerCase();
+    if (lower.includes("shop-only")) return false;
+    if (/\bandrew\b/i.test(text)) return false;
+    return true;
+  });
+}
+
 function renderEstimate(result) {
   lastEstimate = result;
   if (!result) {
@@ -165,13 +175,13 @@ function renderEstimate(result) {
   let rangeHtml;
 
   if (result.status === "rejected") {
-    statusHtml = `<p class="status-bad">OVER-TRAVEL — no customer range. RFQ can still go to quotes@ so Andrew can review.</p>`;
+    statusHtml = `<p class="status-bad">OVER-TRAVEL — no customer range. RFQ can still go to quotes@ so the shop can review.</p>`;
     rangeHtml = `<p class="range status-bad">Rejected</p>`;
   } else if (high) {
     statusHtml = `<p class="status-warn">STEP volume pending shop measurement. High-side estimate — not a final bid.</p>`;
     rangeHtml = `<p class="range">${moneyText(high.quote_low_usd)} – ${moneyText(high.quote_high_usd)}</p>`;
   } else if (cost) {
-    statusHtml = `<p class="status-ok">Fits 1500MX usable travel. Estimate range — not a final bid. Andrew confirms from quotes@.</p>`;
+    statusHtml = `<p class="status-ok">Fits 1500MX usable travel. Estimate range — not a final bid. The shop confirms from quotes@.</p>`;
     rangeHtml = `<p class="range">${moneyText(cost.quote_low_usd)} – ${moneyText(cost.quote_high_usd)}</p>`;
   } else {
     statusHtml = `<p>Waiting for geometry.</p>`;
@@ -188,7 +198,7 @@ function renderEstimate(result) {
     <h2>Estimate range</h2>
     ${statusHtml}
     ${rangeHtml}
-    <p class="hint">This is an estimate — not a final bid. Andrew confirms from quotes@ after you proceed. A payment link arrives in that email.</p>
+    <p class="hint">This is an estimate — not a final bid. The shop confirms from quotes@ after you proceed. A payment link arrives in that email.</p>
     <dl>
       <dt>File</dt><dd>${geo?.filename || "—"} (${geo?.format || "—"})</dd>
       <dt>Material</dt><dd>${priced?.material_label || materialInput.value} · ${priced?.material_source || "—"}</dd>
@@ -200,7 +210,7 @@ function renderEstimate(result) {
       <dt>Part vol</dt><dd>${geo?.volume_known ? `${geo.part_volume_in3.toFixed(4)} in³` : "pending (STEP)"}</dd>
       <dt>Envelope</dt><dd>${env?.fits ? "FITS" : `OVER ${ (env?.over_travel_axes || []).map((a) => a.toUpperCase()).join(",") || "?"}`}</dd>
     </dl>
-    <ul class="callouts">${(result.callouts || []).map((c) => `<li>${c}</li>`).join("")}</ul>
+    <ul class="callouts">${customerCallouts(result.callouts).map((c) => `<li>${c}</li>`).join("")}</ul>
   `;
   writeShopHiddens(result);
 }

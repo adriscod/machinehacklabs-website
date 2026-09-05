@@ -23,7 +23,8 @@ def test_quote_page_is_quotes_inbox_and_machining_only() -> None:
 
 
 def _visible_html(html: str) -> str:
-    return re.sub(r"<!--.*?-->", "", html, flags=re.S).lower()
+    stripped = re.sub(r"<!--.*?-->", "", html, flags=re.S).lower()
+    return re.sub(r"\s+", " ", stripped)
 
 
 def test_quote_page_estimate_is_customer_visible_not_final_bid() -> None:
@@ -34,7 +35,8 @@ def test_quote_page_estimate_is_customer_visible_not_final_bid() -> None:
     assert "for andrew only" not in lower
     assert "shop-only range for andrew" not in lower
     assert "not a customer bid" not in lower
-    assert "payment link arrives in andrew" in lower
+    assert "andrew" not in lower
+    assert "payment link arrives in that email after you proceed" in lower
     assert "does not take payment" in lower
     assert 'type="tel"' in QUOTE_HTML  # phone, not a card field
     assert "card number" not in lower
@@ -46,31 +48,36 @@ def test_quote_page_estimate_is_customer_visible_not_final_bid() -> None:
 
 def test_rfq_panel_copy_is_customer_visible_estimate() -> None:
     js = (REPO / "assets" / "js" / "rfq-form.js").read_text(encoding="utf-8")
-    estimator = (REPO / "assets" / "js" / "estimator.js").read_text(encoding="utf-8")
-    assert "Shop-only" not in js
-    assert "shop-only" not in js
+    assert "Shop-only rough range" not in js
+    assert "shop-only high-side" not in js.lower()
+    assert "Shop-only range" not in js
+    assert "Andrew" not in js
     assert "<h2>Estimate range</h2>" in js
     assert "This is an estimate — not a final bid." in js
-    assert "Andrew confirms from quotes@" in js
+    assert "The shop confirms from quotes@" in js
     assert "A payment link arrives in that email" in js
-    assert "shop-only" not in estimator
-    assert "This is an estimate, not a final bid." in estimator
+    assert "function customerCallouts" in js
 
 
 def test_thanks_and_home_do_not_contradict_customer_estimate() -> None:
-    thanks = (REPO / "thanks" / "index.html").read_text(encoding="utf-8").lower()
-    home = (REPO / "index.html").read_text(encoding="utf-8").lower()
-    privacy = (REPO / "privacy" / "index.html").read_text(encoding="utf-8").lower()
+    thanks = _visible_html((REPO / "thanks" / "index.html").read_text(encoding="utf-8"))
+    home = _visible_html((REPO / "index.html").read_text(encoding="utf-8"))
+    privacy = _visible_html((REPO / "privacy" / "index.html").read_text(encoding="utf-8"))
+    caps = _visible_html((REPO / "capabilities" / "index.html").read_text(encoding="utf-8"))
     assert "not a final bid" in thanks
     assert "estimate you saw on the form" in thanks
     assert "does not take payment" in thanks
     assert "does not show pricing" in thanks
     assert "shop-only" not in thanks
-    assert "payment link arrives in andrew" in thanks
+    assert "andrew" not in thanks
+    assert "payment link arrives in that email after you proceed" in thanks
     assert "shop-only" not in privacy
+    assert "andrew" not in privacy
     assert "not a customer quote" not in privacy
     assert "estimate range is shown on the quote page" in privacy
     assert "not a final bid" in privacy
+    assert "andrew" not in caps
+    assert "shop placeholders" in caps
     assert "cnc milling for real parts" in home
     assert "href=\"/quote/\"" in (REPO / "index.html").read_text(encoding="utf-8")
     assert "shop-only" not in home
@@ -91,6 +98,8 @@ def test_bid_email_template_is_pay_to_accept() -> None:
     assert "not billed" in lower
     assert "chase business account" in lower
     assert "does not take cards" in lower
+    assert "— andrew" not in lower
+    assert not re.search(r"^— andrew\s*$", TEMPLATE, flags=re.I | re.M)
 
 
 def test_readme_and_autoresponse_cover_template_usage() -> None:
@@ -105,6 +114,8 @@ def test_readme_and_autoresponse_cover_template_usage() -> None:
     assert "does not include pricing" in auto
     assert "payment link arrives in that email after you proceed" in auto
     assert "shop-only" not in auto
+    assert "andrew" not in auto
+    assert "andrew" not in rfq["providerNotes"].lower()
 
 
 def _shop_hidden_keys() -> list[str]:
