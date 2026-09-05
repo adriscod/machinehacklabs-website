@@ -6,6 +6,7 @@ The **customer product** is the website RFQ form at `/quote/`, which emails
 - YAML source of truth for the cost model
 - CLI for STEP solid volume (CadQuery) and MRR calibration
 - Local site server that captures RFQs **without sending email**
+- Local shop job ledger for the quotes@ → Chase payment journey
 
 Ticket: **MHL-CF-001**. Machine: **Tormach 1500MX** (3-axis mill only).
 
@@ -20,6 +21,8 @@ python mhl-quote\dev_rfq_server.py
 Open http://127.0.0.1:8765/quote/
 
 Local submits go to `mhl-quote/.local-inbox/` and **do not** email quotes@.
+Each local capture also stubs a shop job in `mhl-quote/.local-jobs/`
+(estimated / unpaid) so Andrew can set the bid and paste a Chase link.
 Live delivery (after publish, not this draft) uses FormSubmit to
 `quotes@machinehacklabs.com`. See the repo README.
 
@@ -28,6 +31,35 @@ sends a bid from `templates/bid-email.txt` (scope, materials+tooling
 deposit, pasted Chase payment / invoice URL). Paying that link accepts
 the stated scope and price. Deposit then balance before ship. No Chase
 API and no card capture on the site. Scrap is not billed.
+
+## Shop job tracker (after quotes@)
+
+Andrew records each RFQ/job for the payment journey. Smallest useful
+ledger: one JSON file per job in `.local-jobs/` (gitignored). Not an
+accounting suite. No Chase API — he creates the payment request himself
+and pastes the URL (same URL that goes in `{CHASE_PAYMENT_LINK}`).
+
+Workflow: estimated → proceeded → bid sent → deposit paid → scheduled →
+balanced → shipped.
+
+Payment: unpaid / deposit paid / balanced (paid in full).
+
+```bat
+python mhl-quote\shop_jobs.py new --id MHL-1001 --estimate-low 110 --estimate-high 162
+python mhl-quote\shop_jobs.py from-inbox 20260905T143000Z
+python mhl-quote\shop_jobs.py set MHL-1001 --bid 145 --deposit 60 --chase-url https://secure.chase.com/your-request --status bid_sent
+python mhl-quote\shop_jobs.py list
+```
+
+Or open http://127.0.0.1:8765/__shop/ while the local server is running.
+
+Policy stored on every job file:
+
+- Estimate band is a shop rough range, not the customer bid.
+- Deposit is a materials + tooling floor, not a fixed percent.
+- Paying the pasted Chase link is acceptance of the stated scope and price.
+- Deposit, then balance, then ship. Scrap is not billed to the customer.
+- This site never captures cards or auto-charges.
 
 After editing `config/quote.yaml`:
 

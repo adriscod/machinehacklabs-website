@@ -79,3 +79,22 @@ def test_home_points_at_quote_route() -> None:
     html = (REPO / "index.html").read_text(encoding="utf-8")
     assert 'href="/quote/"' in html
     assert "quotes@machinehacklabs.com" in html
+
+
+def test_readme_documents_shop_job_tracker() -> None:
+    text = (REPO / "README.md").read_text(encoding="utf-8")
+    assert "shop job tracker" in text.lower()
+    assert "http://127.0.0.1:8765/__shop/" in text
+    assert "shop_jobs.py" in text
+    assert "Estimator band" in text
+    assert "bid" in text
+    assert "Chase" in text
+    assert "Scrap is not billed" in text
+    assert "acceptance of the stated scope and price" in text
+
+
+def test_marketing_pages_do_not_link_shop_tracker() -> None:
+    for rel in ("index.html", "quote/index.html", "thanks/index.html"):
+        html = (REPO / rel).read_text(encoding="utf-8")
+        assert 'href="/__shop' not in html
+        assert "<h1>Shop job tracker" not in html

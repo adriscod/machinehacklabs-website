@@ -1,6 +1,7 @@
 .venv/
 venv/
 .local-inbox/
+.local-jobs/
 __pycache__/
 *.py[cod]
 *.egg-info/

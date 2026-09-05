@@ -42,6 +42,31 @@ Open http://127.0.0.1:8765/quote/
 On localhost the form POSTs to `/__local_rfq`. Packages land in
 `mhl-quote/.local-inbox/` (gitignored). Nothing is sent to quotes@.
 
+## After quotes@ (shop job tracker)
+
+When an RFQ lands in **quotes@machinehacklabs.com**, Andrew records the shop
+job in a local JSON ledger (`mhl-quote/.local-jobs/`, gitignored). This is
+not a customer page and is not published.
+
+```bat
+python mhl-quote\dev_rfq_server.py
+```
+
+Then open http://127.0.0.1:8765/__shop/ — or use the CLI:
+
+```bat
+python mhl-quote\shop_jobs.py new --id MHL-1001 --estimate-low 110 --estimate-high 162
+python mhl-quote\shop_jobs.py set MHL-1001 --bid 145 --deposit 60 --chase-url https://secure.chase.com/your-request --status bid_sent
+python mhl-quote\shop_jobs.py advance MHL-1001
+```
+
+- Estimator band ≠ Andrew’s bid.
+- Deposit is a materials + tooling floor, not a fixed percent.
+- Paste a Chase payment URL Andrew created. No Chase API. No card capture here.
+- Paying that link is acceptance of the stated scope and price.
+- Deposit, then balance, then ship. Scrap is not billed.
+- Customer bid email is `mhl-quote/templates/bid-email.txt` — paste the same Chase URL there.
+
 ## Shop tunables
 
 Edit `mhl-quote/config/quote.yaml`, then:
