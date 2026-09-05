@@ -1,0 +1,27 @@
+{
+  "name": "machinehacklabs-website",
+  "user": "ubuntu",
+  "install": "bash .cursor/install.sh",
+  "terminals": [
+    {
+      "name": "static-site",
+      "command": "cd /workspace && python3 -m http.server 8000",
+      "description": "Serves the static marketing site (index.html) at http://localhost:8000"
+    },
+    {
+      "name": "rfq-app",
+      "command": "cd /workspace/rfq-app && /workspace/mhl-quote/.venv/bin/python app.py",
+      "description": "Runs the RFQ web app (upload a STEP/STL -> rough quote range) at http://localhost:5000"
+    }
+  ],
+  "ports": [
+    {
+      "name": "static-site",
+      "port": 8000
+    },
+    {
+      "name": "rfq-app",
+      "port": 5000
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+# RFQ web app. Wraps the local mhl_quote estimator in a small upload form.
+# The estimator itself (numpy, numpy-stl, PyYAML, optional cadquery) is installed
+# separately from ../mhl-quote; see ../.cursor/install.sh.
+Flask>=3.0

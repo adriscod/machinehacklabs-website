@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mhl-quote"
+version = "0.1.0"
+description = "Local CNC rough-quote estimator for Machine Hack Labs (Tormach 1500MX)"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Machine Hack Labs" }]
+dependencies = [
+    "numpy>=1.24",
+    "numpy-stl>=3.1",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+step = ["cadquery>=2.4"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+mhl-quote = "mhl_quote.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["mhl_quote*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
