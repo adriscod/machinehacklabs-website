@@ -3,11 +3,25 @@
 # All linear units are inches. Volumes are cubic inches. Money is USD.
 
 shop:
-  rate_usd_per_hr: 75          # labor only; materials are pass-through
-  setup_hours: 1.0             # default; override per job on the CLI
-  min_charge_usd: 75
-  band_low: 0.85               # quote_low = raw * band_low
-  band_high: 1.25              # quote_high = raw * band_high
+  rate_usd_per_hr: 75             # standard labor rate; materials are pass-through
+  rush_rate_usd_per_hr: 125       # every labor hour on a rush job bills at this rate
+  setup_hours: 1.0                # default; override per job on the CLI
+  min_charge_usd: 75              # legacy single-part floor (kept for the CLI)
+  min_charge_per_part_usd: 75     # batch floor: no single part prices below this
+  max_amortization_qty: 100       # setup stops amortizing past this qty (guardrail)
+  band_low: 0.85                  # quote_low = raw * band_low
+  band_high: 1.25                 # quote_high = raw * band_high
+
+# Tight-tolerance rules (labor only; materials still pass through).
+# Standard quality is +/-0.005" for metal and +/-0.010" for plastic. A callout is
+# "tight" when its tolerance is smaller than the standard for the part's material class.
+tolerances:
+  standard_in:
+    metal: 0.005
+    plastic: 0.010
+  tight_first_hour_rate: 125      # 1st tight callout = 1 hr at this rate
+  additional_uplift_pct: 25       # each additional callout = 1 hr at rate*(1+25%) = $93.75
+  hours_per_callout: 1.0
 
 machine:
   name: Tormach 1500MX
@@ -30,6 +44,7 @@ materials:
   aluminum:
     label: Aluminum (6061 typical)
     family: aluminum
+    class: metal
     aliases: [al, alum, 6061, 6061-t6, aluminium]
     mrr_eff_in3_per_hr: 12.0          # typical shop band ~8–15 in³/hr
     mrr_typical_low_in3_per_hr: 8.0
@@ -38,11 +53,23 @@ materials:
   steel:
     label: Steel (mild / 1018 typical)
     family: steel
+    class: metal
     aliases: [1018, mild, mild-steel, crs]
     mrr_eff_in3_per_hr: 5.0           # typical shop band ~3–8 in³/hr
     mrr_typical_low_in3_per_hr: 3.0
     mrr_typical_high_in3_per_hr: 8.0
     cost_usd_per_in3: 0.28            # replace with Andrew's real stock cost
+  # Plastic placeholder so the metal/plastic tolerance threshold works end-to-end.
+  # Tune MRR_eff and $/in³ once Andrew confirms real numbers for the shop.
+  delrin:
+    label: Delrin / Acetal (POM)
+    family: plastic
+    class: plastic
+    aliases: [acetal, pom, plastic]
+    mrr_eff_in3_per_hr: 20.0          # placeholder; plastics cut fast
+    mrr_typical_low_in3_per_hr: 12.0
+    mrr_typical_high_in3_per_hr: 30.0
+    cost_usd_per_in3: 0.20            # placeholder; replace with real stock cost
 
 # Hard non-goals for this estimator. Do not add quote options for these.
 unsupported:

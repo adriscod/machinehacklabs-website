@@ -102,22 +102,38 @@ def _envelope_lines(env: EnvelopeCheck) -> list[str]:
 
 def _cost_lines(cost: CostBreakdown) -> list[str]:
     source = "catalog estimate" if cost.material_cost_is_catalog_estimate else "invoice override"
-    return [
-        "COST MODEL  ($75/hr default · materials pass-through · no scrap adder)",
-        f"  Material:   {cost.material_label}  ({source})",
+    rate_note = " (rush)" if cost.rush_applied or cost.whole_part_tight else ""
+    lines = [
+        "COST MODEL  (labor + materials pass-through · no scrap adder)",
+        f"  Material:   {cost.material_label}  ({source})"
+        + ("  [on shelf]" if cost.material_on_shelf else ""),
         f"  Stock vol:  {cost.stock_volume_in3:.4f} in³",
         f"  Part vol:   {cost.part_volume_in3:.4f} in³",
         f"  Removal:    {cost.removal_volume_in3:.4f} in³",
         f"  MRR_eff:    {cost.mrr_eff_in3_per_hr:g} in³/hr",
-        f"  Setup:      {cost.setup_hours:.4f} hr",
+        f"  Setup:      {cost.setup_hours:.4f} hr  (amortized across {cost.effective_qty} part(s))",
         f"  Cut:        {cost.cut_hours:.4f} hr",
-        f"  Labor:      ({cost.setup_hours:.4f} + {cost.cut_hours:.4f}) × "
-        f"${cost.shop_rate_usd_per_hr:g}/hr = ${cost.labor_usd:.2f}",
-        f"  Materials:  ${cost.material_usd:.2f}",
-        f"  Raw:        ${cost.raw_quote_usd:.2f}"
-        + ("  (min charge applied)" if cost.min_charge_applied else ""),
-        f"  RANGE:      ${cost.quote_low_usd:.2f}  –  ${cost.quote_high_usd:.2f}",
+        f"  Labor rate: ${cost.shop_rate_usd_per_hr:g}/hr{rate_note}",
     ]
+    if cost.whole_part_tight:
+        lines.append("  Tolerance:  whole part tight — all labor at rush rate")
+    elif cost.tight_callouts:
+        lines.append(
+            f"  Tolerance:  {cost.tight_callouts} tight callout(s) → +${cost.tolerance_labor_usd:.2f} labor"
+        )
+    lines.extend(
+        [
+            f"  Per-part:   labor ${cost.per_part_labor_usd:.2f} + material ${cost.per_part_material_usd:.2f} "
+            f"= ${cost.per_part_raw_usd:.2f}"
+            + ("  (min charge applied)" if cost.min_charge_applied else ""),
+            f"  Quantity:   {cost.quantity} × ${cost.per_part_raw_usd:.2f} = ${cost.batch_total_usd:.2f} batch",
+            f"  Per-part range:  ${cost.per_part_low_usd:.2f}  –  ${cost.per_part_high_usd:.2f}",
+            f"  BATCH RANGE:     ${cost.quote_low_usd:.2f}  –  ${cost.quote_high_usd:.2f}",
+        ]
+    )
+    if cost.guardrail_callout:
+        lines.append(f"  ! {cost.guardrail_callout}")
+    return lines
 
 
 def _geometry_json(geo: GeometryResult) -> dict[str, Any]:
@@ -161,4 +177,19 @@ def _cost_json(cost: CostBreakdown) -> dict[str, Any]:
         "quote_low_usd": cost.quote_low_usd,
         "quote_high_usd": cost.quote_high_usd,
         "min_charge_applied": cost.min_charge_applied,
+        "quantity": cost.quantity,
+        "effective_qty": cost.effective_qty,
+        "rush_applied": cost.rush_applied,
+        "tight_callouts": cost.tight_callouts,
+        "whole_part_tight": cost.whole_part_tight,
+        "tolerance_labor_usd": cost.tolerance_labor_usd,
+        "per_part_labor_usd": cost.per_part_labor_usd,
+        "per_part_material_usd": cost.per_part_material_usd,
+        "per_part_raw_usd": cost.per_part_raw_usd,
+        "per_part_low_usd": cost.per_part_low_usd,
+        "per_part_high_usd": cost.per_part_high_usd,
+        "batch_total_usd": cost.batch_total_usd,
+        "amortization_capped": cost.amortization_capped,
+        "material_on_shelf": cost.material_on_shelf,
+        "guardrail_callout": cost.guardrail_callout,
     }

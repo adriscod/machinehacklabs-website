@@ -6,7 +6,14 @@ from typing import assert_never
 
 from mhl_quote.config import ConfigError, QuoteConfig, find_material, load_config
 from mhl_quote.geometry import GeometryError
-from mhl_quote.models import JobOverrides, LengthUnit, QuoteStatus, UnsupportedProcess, Vec3
+from mhl_quote.models import (
+    JobOverrides,
+    LengthUnit,
+    QuoteStatus,
+    Timeline,
+    UnsupportedProcess,
+    Vec3,
+)
 from mhl_quote.quote import estimate_quote
 from mhl_quote.report import render_json, render_text
 
@@ -85,6 +92,35 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="USD",
         help="Actual stock purchase (pass-through). Replaces catalog $/in³ estimate.",
+    )
+    drivers = parser.add_argument_group("quote drivers")
+    drivers.add_argument(
+        "--quantity",
+        type=int,
+        default=1,
+        help="Batch quantity; setup amortizes across parts (default: 1)",
+    )
+    drivers.add_argument(
+        "--rush",
+        action="store_true",
+        help="Rush timeline: bill every labor hour at the rush rate",
+    )
+    drivers.add_argument(
+        "--tight-callouts",
+        type=int,
+        default=0,
+        metavar="N",
+        help="Number of tolerance callouts tighter than standard for the material class",
+    )
+    drivers.add_argument(
+        "--whole-part-tight",
+        action="store_true",
+        help="Whole part is tight: bill all labor at the rush rate (per-callout adders drop out)",
+    )
+    drivers.add_argument(
+        "--on-shelf",
+        action="store_true",
+        help="Flag material as on-shelf / inventory for the operator",
     )
     parser.add_argument(
         "--json",
@@ -169,6 +205,11 @@ def main(argv: list[str] | None = None) -> int:
                 mrr_eff_in3_per_hr=args.mrr,
                 stock_dims_in=stock_dims,
                 stock_purchase_cost_usd=args.stock_cost,
+                quantity=args.quantity,
+                timeline=Timeline.RUSH if args.rush else Timeline.STANDARD,
+                tight_callouts=args.tight_callouts,
+                whole_part_tight=args.whole_part_tight,
+                material_on_shelf=args.on_shelf,
             ),
             requested_processes=requested,
         )
@@ -217,8 +258,16 @@ def _print_config(config: QuoteConfig) -> None:
     usable = machine.usable_in
     print(f"Config: {config.source_path}")
     print(
-        f"  shop rate ${shop.rate_usd_per_hr:g}/hr  setup {shop.setup_hours:g} hr  "
-        f"min charge ${shop.min_charge_usd:g}  band {shop.band_low:g}–{shop.band_high:g}"
+        f"  shop rate ${shop.rate_usd_per_hr:g}/hr  rush ${shop.rush_rate_usd_per_hr:g}/hr  "
+        f"setup {shop.setup_hours:g} hr  min charge/part ${shop.min_charge_per_part_usd:g}  "
+        f"band {shop.band_low:g}–{shop.band_high:g}"
+    )
+    tol = config.tolerances
+    print(
+        f"  tight tolerance: 1st callout ${tol.tight_first_hour_rate_usd:g} + "
+        f"{tol.additional_uplift_pct:g}% each additional  "
+        f"(standard metal {tol.standard_in_metal:g}\"  plastic {tol.standard_in_plastic:g}\")  "
+        f"max amortization qty {shop.max_amortization_qty}"
     )
     print(
         f"  {machine.name} {machine.axes}-axis  "

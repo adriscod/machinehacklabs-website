@@ -15,6 +15,7 @@ from mhl_quote.models import (
     LengthUnit,
     QuoteResult,
     QuoteStatus,
+    Timeline,
     UnsupportedProcess,
     Vec3,
 )
@@ -97,6 +98,7 @@ def estimate_quote(
             "Removal volume is ~0 (part fills the stock box). Cut hours will be near zero; "
             "quote is mostly setup + material."
         )
+    callouts.extend(_driver_callouts(config, cost))
     if envelope.rotation_note:
         callouts.append(envelope.rotation_note)
 
@@ -113,6 +115,35 @@ def estimate_quote(
     )
 
 
+def _driver_callouts(config: QuoteConfig, cost) -> list[str]:  # noqa: ANN001 - CostBreakdown
+    notes: list[str] = []
+    if cost.rush_applied:
+        notes.append(
+            f"Rush timeline: labor billed at ${config.shop.rush_rate_usd_per_hr:g}/hr "
+            f"instead of ${config.shop.rate_usd_per_hr:g}/hr."
+        )
+    if cost.whole_part_tight:
+        notes.append(
+            f"Whole part is tight tolerance: all labor billed at "
+            f"${config.shop.rush_rate_usd_per_hr:g}/hr (per-callout adders do not apply)."
+        )
+    elif cost.tight_callouts >= 1:
+        notes.append(
+            f"{cost.tight_callouts} tight-tolerance callout(s): +${cost.tolerance_labor_usd:.2f} "
+            "labor. A blueprint is required to verify tight callouts."
+        )
+    if cost.quantity > 1:
+        notes.append(
+            f"Quantity {cost.quantity}: setup amortized across {cost.effective_qty} part(s); "
+            f"per-part ${cost.per_part_low_usd:.2f}–${cost.per_part_high_usd:.2f}."
+        )
+    if cost.material_on_shelf:
+        notes.append("Material flagged on-shelf / inventory (operator: confirm stock on hand).")
+    if cost.guardrail_callout:
+        notes.append(cost.guardrail_callout)
+    return notes
+
+
 def _overrides_dict(overrides: JobOverrides) -> dict[str, object]:
     applied: dict[str, object] = {}
     if overrides.setup_hours is not None:
@@ -123,4 +154,14 @@ def _overrides_dict(overrides: JobOverrides) -> dict[str, object]:
         applied["stock_dims_in"] = overrides.stock_dims_in.to_mapping()
     if overrides.stock_purchase_cost_usd is not None:
         applied["stock_purchase_cost_usd"] = overrides.stock_purchase_cost_usd
+    if overrides.quantity != 1:
+        applied["quantity"] = overrides.quantity
+    if overrides.timeline is not Timeline.STANDARD:
+        applied["timeline"] = overrides.timeline.value
+    if overrides.tight_callouts:
+        applied["tight_callouts"] = overrides.tight_callouts
+    if overrides.whole_part_tight:
+        applied["whole_part_tight"] = True
+    if overrides.material_on_shelf:
+        applied["material_on_shelf"] = True
     return applied
