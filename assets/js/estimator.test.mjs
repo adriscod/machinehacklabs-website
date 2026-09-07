@@ -10,7 +10,9 @@ import {
   computeCost,
   estimateFromGeometry,
   findMaterial,
+  geometryProxyTimeEstimate,
   listEnabledMaterials,
+  materialClassOf,
   measureStepText,
   measureStlBuffer,
   parseIsoDate,
@@ -113,8 +115,9 @@ test("RFQ v2 rush vs standard", () => {
   });
   assert.equal(standard.raw_quote_usd, 129.2);
   assert.equal(rush.setup_hours, 1.25);
-  assert.equal(rush.labor_usd, 215.63);
-  assert.equal(rush.raw_quote_usd, 219.83);
+  assert.equal(rush.applied_rate_usd_per_hr, 125);
+  assert.equal(rush.labor_usd, 239.58);
+  assert.equal(rush.raw_quote_usd, 243.78);
 });
 
 test("RFQ v2 customer-supplied material is zero", () => {
@@ -184,4 +187,55 @@ test("RFQ v2 catalog exports enabled grades", () => {
     assert.ok(keys.includes(key), key);
   }
   assert.equal(findMaterial(config, "aluminum").key, "al_6061");
+  assert.equal(materialClassOf(findMaterial(config, "al_6061")), "metal");
+  assert.equal(materialClassOf(findMaterial(config, "delrin")), "plastic");
+  assert.equal(config.shop.rush_rate_usd_per_hr, 125);
+  assert.equal(config.tolerances.standard_in.plastic, 0.01);
+});
+
+test("pipeline rush_rate and tight-callout adders", () => {
+  const material = findMaterial(config, "al_6061");
+  const bboxIn = { x: 4, y: 2, z: 2 };
+  const one = computeCost({
+    config,
+    material,
+    bboxIn,
+    partVolumeIn3: 4,
+    overrides: { tightCallouts: 1 },
+  });
+  assert.equal(one.tolerance_labor_usd, 125);
+  assert.equal(one.labor_usd, 275);
+  const whole = computeCost({
+    config,
+    material,
+    bboxIn,
+    partVolumeIn3: 4,
+    overrides: { wholePartTight: true, tightCallouts: 5 },
+  });
+  assert.equal(whole.applied_rate_usd_per_hr, 125);
+  assert.equal(whole.tolerance_labor_usd, 0);
+  assert.equal(whole.labor_usd, 250);
+});
+
+test("TimeEstimator seam is pluggable", () => {
+  const material = findMaterial(config, "al_6061");
+  const proxy = geometryProxyTimeEstimate({
+    removalVolumeIn3: 12,
+    mrrEffIn3PerHr: 12,
+    defaultSetupHours: 1,
+  });
+  assert.equal(proxy.cut_hours, 1);
+  assert.equal(proxy.setup_hours, 1);
+  const cost = computeCost({
+    config,
+    material,
+    bboxIn: { x: 4, y: 2, z: 2 },
+    partVolumeIn3: 4,
+    overrides: {
+      timeEstimator: () => ({ setup_hours: 2, cut_hours: 0.5 }),
+    },
+  });
+  assert.equal(cost.setup_hours, 2);
+  assert.equal(cost.cut_hours, 0.5);
+  assert.equal(cost.labor_usd, 187.5);
 });

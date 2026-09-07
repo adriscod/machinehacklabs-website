@@ -112,8 +112,14 @@ def _cost_lines(cost: CostBreakdown) -> list[str]:
         f"  Source:     {cost.material_source.value}  qty={cost.qty}  setups={cost.setups}",
         f"  Turnaround: {cost.turnaround_applied.value}"
         + (f"  (bumped from {cost.turnaround_requested.value})" if cost.turnaround_bumped else "")
-        + f"  labor×{cost.rush_labor_mult:g} setup×{cost.rush_setup_mult:g}",
-        f"  Tolerance:  {cost.tolerance_class.value}  complexity_mult={cost.complexity_mult:g}  risks={risks}",
+        + f"  ${cost.applied_rate_usd_per_hr:g}/hr setup×{cost.rush_setup_mult:g}",
+        f"  Tolerance:  {cost.tolerance_class.value}  complexity_mult={cost.complexity_mult:g}  risks={risks}"
+        + (
+            f"  callouts={cost.tight_callouts}"
+            if cost.tight_callouts or cost.whole_part_tight
+            else ""
+        )
+        + ("  whole-part" if cost.whole_part_tight else ""),
         f"  Stock vol:  {cost.stock_volume_in3:.4f} in³",
         f"  Part vol:   {cost.part_volume_in3:.4f} in³",
         f"  Removal:    {cost.removal_volume_in3:.4f} in³",
@@ -121,7 +127,13 @@ def _cost_lines(cost: CostBreakdown) -> list[str]:
         f"  Setup:      {cost.setup_hours:.4f} hr",
         f"  Cut:        {cost.cut_hours:.4f} hr",
         f"  Labor:      ({cost.setup_hours:.4f} + {cost.cut_hours:.4f}) × "
-        f"${cost.shop_rate_usd_per_hr:g}/hr × {cost.rush_labor_mult:g} = ${cost.labor_usd:.2f}",
+        f"${cost.applied_rate_usd_per_hr:g}/hr"
+        + (
+            f" + ${cost.tolerance_labor_usd:.2f}×{cost.qty} tol"
+            if cost.tolerance_labor_usd
+            else ""
+        )
+        + f" = ${cost.labor_usd:.2f}",
         f"  Materials:  ${cost.material_usd:.2f}",
         f"  Raw:        ${cost.raw_quote_usd:.2f}"
         + ("  (min charge applied)" if cost.min_charge_applied else ""),
@@ -189,4 +201,18 @@ def _cost_json(cost: CostBreakdown) -> dict[str, Any]:
         "due_date_warning": cost.due_date_warning,
         "shop_review_required": cost.shop_review_required,
         "shop_review_reasons": list(cost.shop_review_reasons),
+        "material_class": cost.material_class.value,
+        "rush_applied": cost.rush_applied,
+        "applied_rate_usd_per_hr": cost.applied_rate_usd_per_hr,
+        "tight_callouts": cost.tight_callouts,
+        "whole_part_tight": cost.whole_part_tight,
+        "tolerance_labor_usd": cost.tolerance_labor_usd,
+        "effective_qty": cost.effective_qty,
+        "amortization_capped": cost.amortization_capped,
+        "per_part_labor_usd": cost.per_part_labor_usd,
+        "per_part_material_usd": cost.per_part_material_usd,
+        "per_part_raw_usd": cost.per_part_raw_usd,
+        "per_part_low_usd": cost.per_part_low_usd,
+        "per_part_high_usd": cost.per_part_high_usd,
+        "guardrail_callout": cost.guardrail_callout,
     }

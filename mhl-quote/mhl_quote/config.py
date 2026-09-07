@@ -10,9 +10,11 @@ from mhl_quote.models import (
     FeatureRisk,
     FeatureRiskConfig,
     MachineConfig,
+    MaterialClass,
     MaterialSpec,
     QuoteConfig,
     ShopConfig,
+    TightToleranceConfig,
     ToleranceClass,
     ToleranceConfig,
     Turnaround,
@@ -60,15 +62,36 @@ def load_config(path: str | Path | None = None) -> QuoteConfig:
     except KeyError as exc:
         raise ConfigError(f"{resolved}: missing top-level key {exc}") from exc
 
+    rate = _require_positive(shop_raw, "rate_usd_per_hr", resolved)
+    min_charge = _require_non_negative(shop_raw, "min_charge_usd", resolved)
     shop = ShopConfig(
-        rate_usd_per_hr=_require_positive(shop_raw, "rate_usd_per_hr", resolved),
+        rate_usd_per_hr=rate,
         setup_hours=_require_non_negative(shop_raw, "setup_hours", resolved),
-        min_charge_usd=_require_non_negative(shop_raw, "min_charge_usd", resolved),
+        min_charge_usd=min_charge,
         band_low=_require_positive(shop_raw, "band_low", resolved),
         band_high=_require_positive(shop_raw, "band_high", resolved),
+        rush_rate_usd_per_hr=_optional_positive(
+            shop_raw, "rush_rate_usd_per_hr", resolved, "shop", default=max(rate, 125.0)
+        ),
+        min_charge_per_part_usd=_optional_non_negative(
+            shop_raw, "min_charge_per_part_usd", resolved, "shop", default=min_charge
+        ),
+        max_amortization_qty=int(
+            _optional_positive(
+                shop_raw, "max_amortization_qty", resolved, "shop", default=100.0
+            )
+        ),
     )
     if shop.band_low >= shop.band_high:
         raise ConfigError(f"{resolved}: shop.band_low must be < shop.band_high")
+    if shop.rush_rate_usd_per_hr < shop.rate_usd_per_hr:
+        raise ConfigError(f"{resolved}: shop.rush_rate_usd_per_hr must be >= rate_usd_per_hr")
+    if shop.max_amortization_qty < 1:
+        raise ConfigError(f"{resolved}: shop.max_amortization_qty must be >= 1")
+
+    tight_tolerances = _load_tight_tolerances(
+        raw.get("tolerances"), resolved, default_rush=shop.rush_rate_usd_per_hr
+    )
 
     envelope = _require_vec3(machine_raw.get("envelope_in"), "machine.envelope_in", resolved)
     margin = _require_vec3(
@@ -104,6 +127,9 @@ def load_config(path: str | Path | None = None) -> QuoteConfig:
             enabled=bool(spec.get("enabled", True)),
             cost_is_placeholder=_is_placeholder(spec.get("cost_placeholder")),
             mrr_is_placeholder=_is_placeholder(spec.get("mrr_placeholder")),
+            material_class=_material_class(
+                spec.get("class"), spec.get("family"), resolved, key
+            ),
         )
 
     turnaround = _load_turnaround(raw.get("turnaround"), resolved)
@@ -120,6 +146,7 @@ def load_config(path: str | Path | None = None) -> QuoteConfig:
         feature_risks=feature_risks,
         source_path=str(resolved),
         meta=dict(meta),
+        tolerances=tight_tolerances,
     )
 
 
@@ -188,6 +215,62 @@ def _load_turnaround(raw: Any, source: Path) -> dict[Turnaround, TurnaroundTier]
             min_business_days=days,
         )
     return tiers
+
+
+def _load_tight_tolerances(raw: Any, source: Path, *, default_rush: float) -> TightToleranceConfig:
+    defaults = TightToleranceConfig(tight_first_hour_rate_usd=default_rush)
+    if raw is None:
+        return defaults
+    if not isinstance(raw, Mapping):
+        raise ConfigError(f"{source}: tolerances must be a mapping")
+    standard = raw.get("standard_in") or {}
+    if not isinstance(standard, Mapping):
+        raise ConfigError(f"{source}: tolerances.standard_in must be a mapping")
+    return TightToleranceConfig(
+        standard_in_metal=_coerce_positive(
+            standard.get("metal"), "tolerances.standard_in.metal", source, defaults.standard_in_metal
+        ),
+        standard_in_plastic=_coerce_positive(
+            standard.get("plastic"),
+            "tolerances.standard_in.plastic",
+            source,
+            defaults.standard_in_plastic,
+        ),
+        tight_first_hour_rate_usd=_coerce_positive(
+            raw.get("tight_first_hour_rate"),
+            "tolerances.tight_first_hour_rate",
+            source,
+            default_rush,
+        ),
+        additional_uplift_pct=_coerce_non_negative(
+            raw.get("additional_uplift_pct"),
+            "tolerances.additional_uplift_pct",
+            source,
+            defaults.additional_uplift_pct,
+        ),
+        hours_per_callout=_coerce_positive(
+            raw.get("hours_per_callout"),
+            "tolerances.hours_per_callout",
+            source,
+            defaults.hours_per_callout,
+        ),
+    )
+
+
+def _material_class(raw: Any, family: Any, source: Path, key: str) -> MaterialClass:
+    if raw is not None and str(raw).strip() != "":
+        value = str(raw).strip().lower()
+        try:
+            return MaterialClass(value)
+        except ValueError as exc:
+            allowed = ", ".join(item.value for item in MaterialClass)
+            raise ConfigError(
+                f"{source}: material {key!r} class must be one of {allowed}"
+            ) from exc
+    family_needle = str(family or "").strip().lower()
+    if family_needle == MaterialClass.PLASTIC.value:
+        return MaterialClass.PLASTIC
+    return MaterialClass.METAL
 
 
 def _load_tolerance(raw: Any, source: Path) -> ToleranceConfig:
@@ -279,6 +362,46 @@ def _require_non_negative(
         where = f"{prefix}.{key}" if prefix else key
         raise ConfigError(f"{source}: {where} must be >= 0")
     return value
+
+
+def _optional_positive(
+    raw: Mapping[str, Any], key: str, source: Path, prefix: str, default: float
+) -> float:
+    if key not in raw or raw[key] is None:
+        return default
+    return _require_positive(raw, key, source, prefix)
+
+
+def _optional_non_negative(
+    raw: Mapping[str, Any], key: str, source: Path, prefix: str, default: float
+) -> float:
+    if key not in raw or raw[key] is None:
+        return default
+    return _require_non_negative(raw, key, source, prefix)
+
+
+def _coerce_positive(value: Any, label: str, source: Path, default: float) -> float:
+    if value is None:
+        return default
+    try:
+        num = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ConfigError(f"{source}: {label} must be numeric") from exc
+    if num <= 0:
+        raise ConfigError(f"{source}: {label} must be > 0")
+    return num
+
+
+def _coerce_non_negative(value: Any, label: str, source: Path, default: float) -> float:
+    if value is None:
+        return default
+    try:
+        num = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ConfigError(f"{source}: {label} must be numeric") from exc
+    if num < 0:
+        raise ConfigError(f"{source}: {label} must be >= 0")
+    return num
 
 
 def _require_float(

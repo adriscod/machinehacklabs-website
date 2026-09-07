@@ -18,10 +18,25 @@ meta:
 
 shop:
   rate_usd_per_hr: 75          # labor only; materials are pass-through
+  rush_rate_usd_per_hr: 125    # rush / emergency / whole-part-tight hourly rate
   setup_hours: 1.0             # base_setup_hours; scaled by setups × rush_setup_mult
-  min_charge_usd: 75
+  min_charge_usd: 75           # legacy batch floor (also scaled by rush labor_mult)
+  min_charge_per_part_usd: 75  # no single part prices below this
+  max_amortization_qty: 100    # setup stops amortizing past this qty
   band_low: 0.85               # quote_low = raw * band_low
   band_high: 1.25              # quote_high = raw * band_high
+
+# Tight-tolerance callout rules (labor only; materials still pass through).
+# Standard quality is +/-0.005" for metal and +/-0.010" for plastic. A callout is
+# "tight" when its tolerance is smaller than the standard for the part's material class.
+# These adders sit on top of the RFQ v2 tolerance_class complexity multipliers.
+tolerances:
+  standard_in:
+    metal: 0.005
+    plastic: 0.010
+  tight_first_hour_rate: 125      # 1st tight callout = 1 hr at this rate
+  additional_uplift_pct: 25       # each additional callout = 1 hr at rate*(1+25%)
+  hours_per_callout: 1.0
 
 machine:
   name: Shop mill
@@ -79,6 +94,7 @@ materials:
   al_6061:
     label: Aluminum 6061
     family: aluminum
+    class: metal
     aliases: [aluminum, al, alum, "6061", 6061-t6, aluminium]
     mrr_eff_in3_per_hr: 12.0
     mrr_typical_low_in3_per_hr: 8.0
@@ -90,6 +106,7 @@ materials:
   al_7075:
     label: Aluminum 7075
     family: aluminum
+    class: metal
     aliases: ["7075", 7075-t6]
     mrr_eff_in3_per_hr: 10.0
     mrr_typical_low_in3_per_hr: 7.0
@@ -101,6 +118,7 @@ materials:
   steel_1018:
     label: Steel 1018
     family: steel
+    class: metal
     aliases: [steel, "1018", mild, mild-steel, crs]
     mrr_eff_in3_per_hr: 5.0
     mrr_typical_low_in3_per_hr: 3.0
@@ -112,6 +130,7 @@ materials:
   steel_4340:
     label: Steel 4340
     family: steel
+    class: metal
     aliases: ["4340"]
     mrr_eff_in3_per_hr: 3.0
     mrr_typical_low_in3_per_hr: 1.8
@@ -123,6 +142,7 @@ materials:
   steel_4140:
     label: Steel 4140
     family: steel
+    class: metal
     aliases: ["4140"]
     mrr_eff_in3_per_hr: 3.5
     mrr_typical_low_in3_per_hr: 2.0
@@ -134,6 +154,7 @@ materials:
   ss_303:
     label: Stainless 303
     family: stainless
+    class: metal
     aliases: ["303", stainless-303, "300-series"]
     mrr_eff_in3_per_hr: 2.5
     mrr_typical_low_in3_per_hr: 1.5
@@ -145,6 +166,7 @@ materials:
   ss_304:
     label: Stainless 304
     family: stainless
+    class: metal
     aliases: ["304", stainless, stainless-304, ss]
     mrr_eff_in3_per_hr: 2.2
     mrr_typical_low_in3_per_hr: 1.5
@@ -156,6 +178,7 @@ materials:
   ss_316:
     label: Stainless 316
     family: stainless
+    class: metal
     aliases: ["316", stainless-316]
     mrr_eff_in3_per_hr: 2.0
     mrr_typical_low_in3_per_hr: 1.2
@@ -167,6 +190,7 @@ materials:
   delrin:
     label: Delrin (acetal)
     family: plastic
+    class: plastic
     aliases: [acetal, pom]
     mrr_eff_in3_per_hr: 20.0
     mrr_typical_low_in3_per_hr: 12.0
@@ -178,6 +202,7 @@ materials:
   nylon:
     label: Nylon
     family: plastic
+    class: plastic
     aliases: []
     mrr_eff_in3_per_hr: 18.0
     mrr_typical_low_in3_per_hr: 10.0
@@ -189,6 +214,7 @@ materials:
   uhmw:
     label: UHMW
     family: plastic
+    class: plastic
     aliases: [uhmw-pe, uhmwpe]
     mrr_eff_in3_per_hr: 22.0
     mrr_typical_low_in3_per_hr: 12.0
@@ -200,6 +226,7 @@ materials:
   acrylic:
     label: Acrylic
     family: plastic
+    class: plastic
     aliases: [pmma, plexiglass]
     mrr_eff_in3_per_hr: 16.0
     mrr_typical_low_in3_per_hr: 10.0
@@ -211,6 +238,7 @@ materials:
   pvc:
     label: PVC
     family: plastic
+    class: plastic
     aliases: []
     mrr_eff_in3_per_hr: 20.0
     mrr_typical_low_in3_per_hr: 12.0

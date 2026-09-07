@@ -102,6 +102,7 @@ export const SHOP_HIDDEN_FIELD_KEYS = [
   "turnaround_bumped",
   "rush_labor_mult",
   "rush_setup_mult",
+  "rush_rate_usd_per_hr",
   "setups",
   "qty",
   "tolerance_class",
@@ -117,6 +118,13 @@ export const SHOP_HIDDEN_FIELD_KEYS = [
   "stock_y_in",
   "stock_z_in",
   "stock_override",
+  "material_class",
+  "tight_callouts",
+  "whole_part_tight",
+  "tolerance_labor_usd",
+  "effective_qty",
+  "amortization_capped",
+  "guardrail_callout",
 ];
 
 /** Inputs the /quote/ UI teammate should collect and pass into estimateFromGeometry. */
@@ -131,6 +139,8 @@ export const RFQ_V2_UI_INPUTS = {
   stock_x_in: "optional stock override inches (all three required together)",
   stock_y_in: "optional stock override inches",
   stock_z_in: "optional stock override inches",
+  tight_callouts: "optional integer; per-callout labor adders (shop/CLI)",
+  whole_part_tight: "optional; bills all labor at rush_rate and drops callout adders",
 };
 
 const TURNAROUND_RANK = { standard: 0, rush: 1, emergency: 2 };
@@ -282,6 +292,49 @@ function todayUtcParts() {
   };
 }
 
+export function geometryProxyTimeEstimate({
+  removalVolumeIn3,
+  mrrEffIn3PerHr,
+  defaultSetupHours,
+}) {
+  if (mrrEffIn3PerHr <= 0) throw new Error("MRR_eff must be > 0");
+  const removal = Math.max(0, Number(removalVolumeIn3) || 0);
+  const cutHours = removal === 0 ? 0 : removal / mrrEffIn3PerHr;
+  return { setup_hours: Number(defaultSetupHours) || 0, cut_hours: cutHours };
+}
+
+export function materialClassOf(spec) {
+  const raw = String(spec && (spec.class || spec.material_class) || "").trim().toLowerCase();
+  if (raw === "plastic" || raw === "metal") return raw;
+  const family = String((spec && spec.family) || "").trim().toLowerCase();
+  return family === "plastic" ? "plastic" : "metal";
+}
+
+export function tightToleranceRules(config) {
+  const shop = config.shop || {};
+  const rate = Number(shop.rate_usd_per_hr ?? 75);
+  const rushRate = Number(shop.rush_rate_usd_per_hr ?? Math.max(rate, 125));
+  const raw = config.tolerances || {};
+  const standard = raw.standard_in || {};
+  return {
+    standard_in_metal: Number(standard.metal ?? 0.005),
+    standard_in_plastic: Number(standard.plastic ?? 0.010),
+    tight_first_hour_rate_usd: Number(raw.tight_first_hour_rate ?? rushRate),
+    additional_uplift_pct: Number(raw.additional_uplift_pct ?? 25),
+    hours_per_callout: Number(raw.hours_per_callout ?? 1),
+  };
+}
+
+export function toleranceLaborUsd({ config, tightCallouts = 0, wholePartTight = false }) {
+  if (wholePartTight || tightCallouts <= 0) return 0;
+  const rules = tightToleranceRules(config);
+  const shopRate = Number((config.shop && config.shop.rate_usd_per_hr) ?? 75);
+  const additionalRate = shopRate * (1 + rules.additional_uplift_pct / 100);
+  const first = rules.tight_first_hour_rate_usd * rules.hours_per_callout;
+  const additional = additionalRate * rules.hours_per_callout * (tightCallouts - 1);
+  return first + additional;
+}
+
 export function complexityMult({ config, toleranceClass, featureRisks = [] }) {
   const tol = (config.tolerance || {})[toleranceClass] ?? { standard: 1, tight: 1.25, precision: 1.5 }[toleranceClass];
   const each = Number((config.feature_risks && config.feature_risks.mult_each) ?? 0.15);
@@ -327,12 +380,34 @@ export function computeCost({ config, material, bboxIn, partVolumeIn3, overrides
 
   const baseSetup = overrides.setupHours == null ? config.shop.setup_hours : overrides.setupHours;
   if (baseSetup < 0) throw new Error("setup_hours must be >= 0");
-  const setup = baseSetup * setups * rushSetup;
+  const tightCallouts = Math.max(0, Number(overrides.tightCallouts ?? 0));
+  const wholePartTight = Boolean(overrides.wholePartTight);
+  const rushApplied = schedule.applied !== "standard";
+  const estimator = overrides.timeEstimator || geometryProxyTimeEstimate;
+  const time = estimator({
+    removalVolumeIn3: removalVol,
+    mrrEffIn3PerHr: mrr,
+    partVolumeIn3: partVol,
+    stockVolumeIn3: stockVol,
+    defaultSetupHours: baseSetup,
+  });
+  const maxAmort = Math.max(1, Number(config.shop.max_amortization_qty ?? 100));
+  const effectiveQty = Math.min(qty, maxAmort);
+  const amortizationCapped = qty > maxAmort;
+  const setup = time.setup_hours * setups * rushSetup * (qty / effectiveQty);
 
   const complexity = complexityMult({ config, toleranceClass, featureRisks });
-  const cutEach = removalVol === 0 ? 0 : removalVol / mrr;
-  const cut = cutEach * qty * complexity;
-  const labor = (setup + cut) * config.shop.rate_usd_per_hr * rushLabor;
+  const cut = time.cut_hours * qty * complexity;
+  const appliedRate =
+    rushApplied || wholePartTight
+      ? Number(config.shop.rush_rate_usd_per_hr ?? Math.max(config.shop.rate_usd_per_hr, 125))
+      : Number(config.shop.rate_usd_per_hr);
+  const tolLabor = toleranceLaborUsd({
+    config,
+    tightCallouts,
+    wholePartTight,
+  });
+  const labor = (setup + cut) * appliedRate + tolLabor * qty;
 
   let materialUsd;
   let catalogEstimate;
@@ -347,8 +422,16 @@ export function computeCost({ config, material, bboxIn, partVolumeIn3, overrides
     catalogEstimate = true;
   }
 
-  const minCharge = config.shop.min_charge_usd * rushLabor;
-  const raw = money(Math.max(materialUsd + labor, minCharge));
+  const partFloor = Number(config.shop.min_charge_per_part_usd ?? config.shop.min_charge_usd ?? 75);
+  const perPartLabor = labor / qty;
+  const perPartMaterial = materialUsd / qty;
+  const perPartUncapped = perPartLabor + perPartMaterial;
+  const minChargePerPartApplied = perPartUncapped < partFloor;
+  const perPartRaw = Math.max(perPartUncapped, partFloor);
+  const batch = perPartRaw * qty;
+  const legacyFloor = config.shop.min_charge_usd * rushLabor;
+  const raw = money(Math.max(batch, legacyFloor));
+  const minCharge = Math.max(legacyFloor, partFloor * qty);
   const reviewReasons = [...schedule.reviewReasons];
   const precisionNeedsReview = config.tolerance?.precision_requires_shop_review !== false;
   if (toleranceClass === "precision" && precisionNeedsReview) {
@@ -370,7 +453,7 @@ export function computeCost({ config, material, bboxIn, partVolumeIn3, overrides
     setup_hours: hours(setup),
     cut_hours: hours(cut),
     mrr_eff_in3_per_hr: mrr,
-    shop_rate_usd_per_hr: config.shop.rate_usd_per_hr,
+    shop_rate_usd_per_hr: appliedRate,
     labor_usd: money(labor),
     material_usd: money(materialUsd),
     material_cost_is_catalog_estimate: catalogEstimate,
@@ -392,7 +475,38 @@ export function computeCost({ config, material, bboxIn, partVolumeIn3, overrides
     due_date_warning: schedule.warning,
     shop_review_required: reviewReasons.length > 0,
     shop_review_reasons: reviewReasons,
+    material_class: materialClassOf(material),
+    rush_applied: rushApplied || wholePartTight,
+    applied_rate_usd_per_hr: appliedRate,
+    tight_callouts: tightCallouts,
+    whole_part_tight: wholePartTight,
+    tolerance_labor_usd: money(tolLabor),
+    effective_qty: effectiveQty,
+    amortization_capped: amortizationCapped,
+    per_part_labor_usd: money(perPartLabor),
+    per_part_material_usd: money(perPartMaterial),
+    per_part_raw_usd: money(perPartRaw),
+    per_part_low_usd: money(perPartRaw * config.shop.band_low),
+    per_part_high_usd: money(perPartRaw * config.shop.band_high),
+    guardrail_callout: guardrailCallout({
+      amortizationCapped,
+      minChargePerPartApplied,
+      maxAmort,
+      floor: partFloor,
+    }),
   };
+}
+
+function guardrailCallout({ amortizationCapped, minChargePerPartApplied, maxAmort, floor }) {
+  const reasons = [];
+  if (amortizationCapped) reasons.push(`setup amortization is capped at qty ${maxAmort}`);
+  if (minChargePerPartApplied) reasons.push(`per-part price hit the $${floor} floor`);
+  if (!reasons.length) return null;
+  return (
+    "Batch pricing — operator review: " +
+    reasons.join("; ") +
+    ". Amortization is no longer advantageous; revisit the setup/quantity split."
+  );
 }
 
 export function checkEnvelope(machine, stockIn) {
@@ -633,6 +747,8 @@ export function estimateFromGeometry({
   toleranceClass = "standard",
   featureRisks = [],
   stockDimsIn = null,
+  tightCallouts = 0,
+  wholePartTight = false,
 }) {
   const material = findMaterial(config, materialName);
   const volumeKnown = geometry.volume_known && geometry.part_volume_in3 != null;
@@ -655,6 +771,8 @@ export function estimateFromGeometry({
       toleranceClass,
       featureRisks,
       stockDimsIn: stockDimsIn || undefined,
+      tightCallouts,
+      wholePartTight,
     },
   });
   const status = reasons.length ? "rejected" : "ok";
@@ -734,6 +852,16 @@ export function buildShopPayload(result) {
     turnaround_bumped: cost.turnaround_bumped ? "yes" : "no",
     rush_labor_mult: cost.rush_labor_mult != null ? String(cost.rush_labor_mult) : "",
     rush_setup_mult: cost.rush_setup_mult != null ? String(cost.rush_setup_mult) : "",
+    rush_rate_usd_per_hr:
+      cost.applied_rate_usd_per_hr != null ? String(cost.applied_rate_usd_per_hr) : "",
+    material_class: cost.material_class || "",
+    tight_callouts: cost.tight_callouts != null ? String(cost.tight_callouts) : "",
+    whole_part_tight: cost.whole_part_tight ? "yes" : "no",
+    tolerance_labor_usd:
+      cost.tolerance_labor_usd != null ? Number(cost.tolerance_labor_usd).toFixed(2) : "",
+    effective_qty: cost.effective_qty != null ? String(cost.effective_qty) : "",
+    amortization_capped: cost.amortization_capped ? "yes" : "no",
+    guardrail_callout: cost.guardrail_callout || "",
     setups: cost.setups != null ? String(cost.setups) : "",
     qty: cost.qty != null ? String(cost.qty) : "",
     tolerance_class: cost.tolerance_class || "",

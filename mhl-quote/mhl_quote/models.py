@@ -57,6 +57,11 @@ class FeatureRisk(str, Enum):
     MANY_HOLES = "many_holes"
 
 
+class MaterialClass(str, Enum):
+    METAL = "metal"
+    PLASTIC = "plastic"
+
+
 MM_PER_INCH = 25.4
 IN3_PER_MM3 = 1.0 / (MM_PER_INCH**3)
 
@@ -112,6 +117,7 @@ class MaterialSpec:
     enabled: bool = True
     cost_is_placeholder: bool = True
     mrr_is_placeholder: bool = True
+    material_class: MaterialClass = MaterialClass.METAL
 
 
 @dataclass(frozen=True)
@@ -121,6 +127,12 @@ class ShopConfig:
     min_charge_usd: float
     band_low: float
     band_high: float
+    # Rush / emergency / whole-part-tight jobs bill every labor hour at this rate.
+    rush_rate_usd_per_hr: float = 125.0
+    # Per-part floor. A batch never prices any single part below this.
+    min_charge_per_part_usd: float = 75.0
+    # Cap on the setup divisor: past this quantity, setup no longer amortizes further.
+    max_amortization_qty: int = 100
 
 
 @dataclass(frozen=True)
@@ -161,6 +173,29 @@ class ToleranceConfig:
 
 
 @dataclass(frozen=True)
+class TightToleranceConfig:
+    """Tight-tolerance callout rules (labor only; materials still pass through).
+
+    Standard quality is material-class dependent. A callout is "tight" when its
+    tolerance is smaller (tighter) than the standard for the part's material class.
+    These adders sit on top of the RFQ v2 tolerance_class complexity multipliers.
+    """
+
+    standard_in_metal: float = 0.005
+    standard_in_plastic: float = 0.010
+    tight_first_hour_rate_usd: float = 125.0
+    additional_uplift_pct: float = 25.0
+    hours_per_callout: float = 1.0
+
+    def standard_for(self, material_class: MaterialClass) -> float:
+        if material_class is MaterialClass.METAL:
+            return self.standard_in_metal
+        if material_class is MaterialClass.PLASTIC:
+            return self.standard_in_plastic
+        assert_never(material_class)
+
+
+@dataclass(frozen=True)
 class QuoteConfig:
     shop: ShopConfig
     machine: MachineConfig
@@ -170,6 +205,7 @@ class QuoteConfig:
     feature_risks: FeatureRiskConfig
     source_path: str
     meta: Mapping[str, object] = field(default_factory=dict)
+    tolerances: TightToleranceConfig = field(default_factory=TightToleranceConfig)
 
 
 @dataclass(frozen=True)
@@ -197,6 +233,8 @@ class JobOverrides:
     feature_risks: tuple[FeatureRisk, ...] = ()
     due_date: date | None = None
     as_of_date: date | None = None
+    tight_callouts: int = 0
+    whole_part_tight: bool = False
 
 
 @dataclass(frozen=True)
@@ -246,6 +284,20 @@ class CostBreakdown:
     due_date_warning: str | None
     shop_review_required: bool
     shop_review_reasons: tuple[str, ...]
+    material_class: MaterialClass = MaterialClass.METAL
+    rush_applied: bool = False
+    applied_rate_usd_per_hr: float = 0.0
+    tight_callouts: int = 0
+    whole_part_tight: bool = False
+    tolerance_labor_usd: float = 0.0
+    effective_qty: int = 1
+    amortization_capped: bool = False
+    per_part_labor_usd: float = 0.0
+    per_part_material_usd: float = 0.0
+    per_part_raw_usd: float = 0.0
+    per_part_low_usd: float = 0.0
+    per_part_high_usd: float = 0.0
+    guardrail_callout: str | None = None
 
 
 @dataclass

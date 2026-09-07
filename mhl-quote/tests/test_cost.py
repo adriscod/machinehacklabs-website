@@ -4,9 +4,15 @@ from pathlib import Path
 
 from mhl_quote.config import load_config
 from mhl_quote.cost import compute_cost, money
-from mhl_quote.models import JobOverrides, Vec3
+from mhl_quote.models import JobOverrides, MaterialClass, Turnaround, Vec3
+from mhl_quote.time_estimator import GeometryProxyTimeEstimator, TimeEstimate, TimeInputs
 
 CONFIG = Path(__file__).resolve().parents[1] / "config" / "quote.yaml"
+
+# Clean geometry: stock 4×2×2 = 16 in³, part 4 in³, removal 12 in³ at
+# aluminum MRR 12 → cut 1.0 hr, plus 1.0 setup hr.
+CLEAN_BBOX = Vec3(4, 2, 2)
+CLEAN_PART = 4.0
 
 
 def test_locked_cost_model_aluminum_hand_calc() -> None:
@@ -136,3 +142,112 @@ def test_no_scrap_multiplier() -> None:
         part_volume_in3=1.0,
     )
     assert cost.material_usd == 0.70  # 2 in³ * 0.35, nothing extra for chips
+
+
+def _clean(config, material, **override_kwargs):
+    return compute_cost(
+        config=config,
+        material=material,
+        bbox_in=CLEAN_BBOX,
+        part_volume_in3=CLEAN_PART,
+        overrides=JobOverrides(**override_kwargs) if override_kwargs else None,
+    )
+
+
+def test_rush_rate_elevates_all_labor() -> None:
+    config = load_config(CONFIG)
+    aluminum = config.materials["al_6061"]
+    std = _clean(config, aluminum)
+    assert std.rush_applied is False
+    assert std.shop_rate_usd_per_hr == 75
+    assert std.labor_usd == 150.00  # 2.0 hr * 75
+    assert std.per_part_raw_usd == 155.60
+
+    rush = _clean(config, aluminum, turnaround=Turnaround.RUSH)
+    assert rush.rush_applied is True
+    assert rush.shop_rate_usd_per_hr == 125
+    assert rush.setup_hours == 1.25
+    assert rush.labor_usd == 281.25  # (1.25 + 1.0) * 125
+    assert rush.per_part_raw_usd == 286.85
+    assert rush.quote_high_usd > std.quote_high_usd
+
+
+def test_tight_tolerance_callout_adders() -> None:
+    config = load_config(CONFIG)
+    aluminum = config.materials["al_6061"]
+    one = _clean(config, aluminum, tight_callouts=1)
+    assert one.tight_callouts == 1
+    assert one.tolerance_labor_usd == 125.00  # 1st callout = 1 hr @ 125
+    assert one.labor_usd == 275.00  # 150 base + 125 tolerance
+    assert one.shop_rate_usd_per_hr == 75  # base labor still standard
+
+    three = _clean(config, aluminum, tight_callouts=3)
+    assert three.tolerance_labor_usd == 312.50  # 125 + 93.75 * 2
+    assert three.labor_usd == 462.50
+
+
+def test_whole_part_tight_bills_all_labor_at_rush() -> None:
+    config = load_config(CONFIG)
+    aluminum = config.materials["al_6061"]
+    whole = _clean(config, aluminum, whole_part_tight=True, tight_callouts=5)
+    assert whole.whole_part_tight is True
+    assert whole.shop_rate_usd_per_hr == 125
+    assert whole.tolerance_labor_usd == 0.0
+    assert whole.labor_usd == 250.00  # 2.0 hr * 125
+
+
+def test_quantity_cap_guardrail_fires() -> None:
+    config = load_config(CONFIG)
+    aluminum = config.materials["al_6061"]
+    capped = _clean(config, aluminum, qty=150)
+    assert capped.effective_qty == 100
+    assert capped.amortization_capped is True
+    assert capped.guardrail_callout is not None
+    assert "capped" in capped.guardrail_callout
+
+
+def test_min_charge_floor_guardrail_fires() -> None:
+    config = load_config(CONFIG)
+    aluminum = config.materials["al_6061"]
+    tiny = compute_cost(
+        config=config,
+        material=aluminum,
+        bbox_in=Vec3(0.2, 0.2, 0.2),
+        part_volume_in3=0.008,
+        overrides=JobOverrides(setup_hours=0.0, stock_purchase_cost_usd=0.0, qty=5),
+    )
+    assert tiny.min_charge_applied is True
+    assert tiny.per_part_raw_usd == 75.00
+    assert tiny.raw_quote_usd == 375.00
+    assert tiny.guardrail_callout is not None
+    assert "floor" in tiny.guardrail_callout
+
+
+def test_material_class_thresholds_and_plastic_catalog() -> None:
+    config = load_config(CONFIG)
+    assert config.tolerances.standard_for(MaterialClass.METAL) == 0.005
+    assert config.tolerances.standard_for(MaterialClass.PLASTIC) == 0.010
+    assert config.materials["al_6061"].material_class is MaterialClass.METAL
+    assert config.materials["delrin"].material_class is MaterialClass.PLASTIC
+
+
+def test_time_estimator_seam_is_pluggable() -> None:
+    config = load_config(CONFIG)
+    aluminum = config.materials["al_6061"]
+
+    class FixedTime:
+        def estimate(self, inputs: TimeInputs) -> TimeEstimate:
+            assert inputs.mrr_eff_in3_per_hr > 0
+            return TimeEstimate(setup_hours=2.0, cut_hours=0.5)
+
+    cost = compute_cost(
+        config=config,
+        material=aluminum,
+        bbox_in=CLEAN_BBOX,
+        part_volume_in3=CLEAN_PART,
+        time_estimator=FixedTime(),
+    )
+    assert cost.setup_hours == 2.0
+    assert cost.cut_hours == 0.5
+    assert cost.labor_usd == 187.50  # 2.5 hr * 75
+    assert isinstance(GeometryProxyTimeEstimator(), GeometryProxyTimeEstimator)

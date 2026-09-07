@@ -6,10 +6,22 @@
   },
   "shop": {
     "rate_usd_per_hr": 75,
+    "rush_rate_usd_per_hr": 125,
     "setup_hours": 1.0,
     "min_charge_usd": 75,
+    "min_charge_per_part_usd": 75,
+    "max_amortization_qty": 100,
     "band_low": 0.85,
     "band_high": 1.25
+  },
+  "tolerances": {
+    "standard_in": {
+      "metal": 0.005,
+      "plastic": 0.01
+    },
+    "tight_first_hour_rate": 125,
+    "additional_uplift_pct": 25,
+    "hours_per_callout": 1.0
   },
   "machine": {
     "name": "Shop mill",
@@ -62,6 +74,7 @@
     "al_6061": {
       "label": "Aluminum 6061",
       "family": "aluminum",
+      "class": "metal",
       "aliases": [
         "aluminum",
         "al",
@@ -81,6 +94,7 @@
     "al_7075": {
       "label": "Aluminum 7075",
       "family": "aluminum",
+      "class": "metal",
       "aliases": [
         "7075",
         "7075-t6"
@@ -96,6 +110,7 @@
     "steel_1018": {
       "label": "Steel 1018",
       "family": "steel",
+      "class": "metal",
       "aliases": [
         "steel",
         "1018",
@@ -114,6 +129,7 @@
     "steel_4340": {
       "label": "Steel 4340",
       "family": "steel",
+      "class": "metal",
       "aliases": [
         "4340"
       ],
@@ -128,6 +144,7 @@
     "steel_4140": {
       "label": "Steel 4140",
       "family": "steel",
+      "class": "metal",
       "aliases": [
         "4140"
       ],
@@ -142,6 +159,7 @@
     "ss_303": {
       "label": "Stainless 303",
       "family": "stainless",
+      "class": "metal",
       "aliases": [
         "303",
         "stainless-303",
@@ -158,6 +176,7 @@
     "ss_304": {
       "label": "Stainless 304",
       "family": "stainless",
+      "class": "metal",
       "aliases": [
         "304",
         "stainless",
@@ -175,6 +194,7 @@
     "ss_316": {
       "label": "Stainless 316",
       "family": "stainless",
+      "class": "metal",
       "aliases": [
         "316",
         "stainless-316"
@@ -190,6 +210,7 @@
     "delrin": {
       "label": "Delrin (acetal)",
       "family": "plastic",
+      "class": "plastic",
       "aliases": [
         "acetal",
         "pom"
@@ -205,6 +226,7 @@
     "nylon": {
       "label": "Nylon",
       "family": "plastic",
+      "class": "plastic",
       "aliases": [],
       "mrr_eff_in3_per_hr": 18.0,
       "mrr_typical_low_in3_per_hr": 10.0,
@@ -217,6 +239,7 @@
     "uhmw": {
       "label": "UHMW",
       "family": "plastic",
+      "class": "plastic",
       "aliases": [
         "uhmw-pe",
         "uhmwpe"
@@ -232,6 +255,7 @@
     "acrylic": {
       "label": "Acrylic",
       "family": "plastic",
+      "class": "plastic",
       "aliases": [
         "pmma",
         "plexiglass"
@@ -247,6 +271,7 @@
     "pvc": {
       "label": "PVC",
       "family": "plastic",
+      "class": "plastic",
       "aliases": [],
       "mrr_eff_in3_per_hr": 20.0,
       "mrr_typical_low_in3_per_hr": 12.0,

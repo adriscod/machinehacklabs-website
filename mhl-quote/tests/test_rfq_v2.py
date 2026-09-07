@@ -9,6 +9,7 @@ from mhl_quote.job_inputs import business_days_until, shop_payload_from_cost
 from mhl_quote.models import (
     FeatureRisk,
     JobOverrides,
+    MaterialClass,
     MaterialSource,
     ToleranceClass,
     Turnaround,
@@ -53,6 +54,10 @@ def test_catalog_has_required_grades_and_placeholder_flags() -> None:
         assert spec.enabled is True
     assert find_material(config, "ss").key == "ss_304"
     assert find_material(config, "4340").key == "steel_4340"
+    assert config.materials["al_6061"].material_class is MaterialClass.METAL
+    assert config.materials["delrin"].material_class is MaterialClass.PLASTIC
+    assert config.tolerances.standard_for(MaterialClass.METAL) == 0.005
+    assert config.tolerances.standard_for(MaterialClass.PLASTIC) == 0.010
 
 
 def test_rush_vs_standard_hand_calc() -> None:
@@ -74,16 +79,17 @@ def test_rush_vs_standard_hand_calc() -> None:
     assert standard.material_usd == 4.20
     assert standard.raw_quote_usd == 129.20
 
-    # rush: setup 1*1*1.25=1.25; cut 0.6666…; labor (1.25+8/12)*75*1.5 = 215.63
+    # rush: setup 1*1*1.25=1.25; cut 0.6666…; labor (1.25+8/12)*125 = 239.58
     assert rush.setup_hours == 1.25
     assert rush.cut_hours == 0.6667
     assert rush.rush_labor_mult == 1.5
     assert rush.rush_setup_mult == 1.25
-    assert rush.labor_usd == 215.63
+    assert rush.applied_rate_usd_per_hr == 125
+    assert rush.labor_usd == 239.58
     assert rush.material_usd == 4.20
-    assert rush.raw_quote_usd == 219.83
-    assert rush.quote_low_usd == 186.86
-    assert rush.quote_high_usd == 274.79
+    assert rush.raw_quote_usd == 243.78
+    assert rush.quote_low_usd == 207.21
+    assert rush.quote_high_usd == 304.73
     assert rush.raw_quote_usd > standard.raw_quote_usd
 
 
@@ -245,3 +251,6 @@ def test_shop_payload_includes_v2_keys() -> None:
     assert payload["feature_risks"] == "thin_walls"
     assert payload["complexity_mult"] == 1.4
     assert payload["catalog_values_are_placeholders"] == "yes"
+    assert payload["material_class"] == "metal"
+    assert payload["tight_callouts"] == 0
+    assert payload["whole_part_tight"] == "no"

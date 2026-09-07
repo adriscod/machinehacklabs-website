@@ -11,6 +11,7 @@ from mhl_quote.filters import (
 )
 from mhl_quote.geometry import measure_file
 from mhl_quote.models import (
+    CostBreakdown,
     JobOverrides,
     LengthUnit,
     MaterialSource,
@@ -103,12 +104,12 @@ def estimate_quote(
     if cost.turnaround_applied is not cost.turnaround_requested:
         callouts.append(
             f"Turnaround {cost.turnaround_requested.value} → {cost.turnaround_applied.value} "
-            f"(rush labor ×{cost.rush_labor_mult:g}, setup ×{cost.rush_setup_mult:g})."
+            f"(labor ${cost.applied_rate_usd_per_hr:g}/hr, setup ×{cost.rush_setup_mult:g})."
         )
-    elif cost.rush_labor_mult != 1.0 or cost.rush_setup_mult != 1.0:
+    elif cost.rush_applied:
         callouts.append(
-            f"Turnaround {cost.turnaround_applied.value}: labor ×{cost.rush_labor_mult:g}, "
-            f"setup ×{cost.rush_setup_mult:g} (starting-point multipliers)."
+            f"Turnaround {cost.turnaround_applied.value}: labor billed at "
+            f"${cost.applied_rate_usd_per_hr:g}/hr, setup ×{cost.rush_setup_mult:g}."
         )
     if cost.due_date_warning:
         callouts.append(cost.due_date_warning)
@@ -129,6 +130,7 @@ def estimate_quote(
             "Removal volume is ~0 (part fills the stock box). Cut hours will be near zero; "
             "quote is mostly setup + material."
         )
+    callouts.extend(_pipeline_driver_callouts(config, cost))
     if envelope.rotation_note:
         callouts.append(envelope.rotation_note)
 
@@ -147,6 +149,28 @@ def estimate_quote(
     )
 
 
+def _pipeline_driver_callouts(config: QuoteConfig, cost: CostBreakdown) -> list[str]:
+    notes: list[str] = []
+    if cost.whole_part_tight:
+        notes.append(
+            f"Whole part is tight tolerance: all labor billed at "
+            f"${config.shop.rush_rate_usd_per_hr:g}/hr (per-callout adders do not apply)."
+        )
+    elif cost.tight_callouts >= 1:
+        notes.append(
+            f"{cost.tight_callouts} tight-tolerance callout(s): +${cost.tolerance_labor_usd:.2f} "
+            "labor per part. A blueprint is required to verify tight callouts."
+        )
+    if cost.qty > 1:
+        notes.append(
+            f"Quantity {cost.qty}: setup amortized across {cost.effective_qty} part(s); "
+            f"per-part ${cost.per_part_low_usd:.2f}–${cost.per_part_high_usd:.2f}."
+        )
+    if cost.guardrail_callout:
+        notes.append(cost.guardrail_callout)
+    return notes
+
+
 def _overrides_dict(overrides: JobOverrides) -> dict[str, object]:
     applied: dict[str, object] = {
         "qty": overrides.qty,
@@ -155,6 +179,8 @@ def _overrides_dict(overrides: JobOverrides) -> dict[str, object]:
         "turnaround": overrides.turnaround.value,
         "tolerance_class": overrides.tolerance_class.value,
         "feature_risks": [r.value for r in overrides.feature_risks],
+        "tight_callouts": overrides.tight_callouts,
+        "whole_part_tight": overrides.whole_part_tight,
     }
     if overrides.setup_hours is not None:
         applied["setup_hours"] = overrides.setup_hours

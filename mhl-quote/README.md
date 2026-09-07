@@ -91,9 +91,11 @@ python -m mhl_quote path\to\part.step --units mm --material steel
 | `--qty 3` | Cut hours + catalog material scale |
 | `--setups 2` | Scales setup hours (min 1) |
 | `--material-source shop_buys\|customer_supplied` | Customer stock → material $ = 0 |
-| `--turnaround standard\|rush\|emergency` | Rush mults are YAML starting points |
+| `--turnaround standard\|rush\|emergency` | Rush/emergency bill at `shop.rush_rate_usd_per_hr`; setup still uses YAML setup_mult |
 | `--due-date YYYY-MM-DD` | Auto-bumps turnaround if the calendar is tighter |
 | `--tolerance standard\|tight\|precision` | Multiplies cut hours; precision → shop review |
+| `--tight-callouts N` | Per-callout labor adders (1st hr at tight_first_hour_rate) |
+| `--whole-part-tight` | All labor at rush_rate; callout adders drop out |
 | `--feature-risk deep_pockets` (repeatable) | +0.15 each, complexity cap 1.75 |
 | `--setup-hours` / `--mrr` / `--stock-x/y/z` / `--stock-cost` | Overrides |
 | `--json` | Machine-readable result |
@@ -106,25 +108,31 @@ python -m mhl_quote path\to\part.step --units mm --material steel
 stock_vol = bbox (or stock override X/Y/Z) volume in³
 part_vol = solid volume in³
 removal_vol = max(0, stock_vol − part_vol)
-cut_hours = (removal_vol / MRR_eff) × qty × complexity_mult
-setup_hours = base_setup_hours × setups × rush_setup_mult
-labor_$ = (setup_hours + cut_hours) × shop_rate × rush_labor_mult
+cut_each = TimeEstimator (default: removal_vol / MRR_eff)
+cut_hours = cut_each × qty × complexity_mult
+setup_hours = base_setup_hours × setups × rush_setup_mult × (qty / effective_qty)
+hourly_rate = rush_rate if rush/emergency/whole-part-tight else shop_rate
+tolerance_$ = 0 if whole-part-tight else first_hour + additional×(N−1)
+labor_$ = (setup_hours + cut_hours) × hourly_rate + tolerance_$ × qty
 material_$ = shop_buys ? catalog $/in³ × stock_vol × qty : 0
-raw_$ = max(material_$ + labor_$, min_charge × rush_labor_mult)
+per_part = max((material_$ + labor_$)/qty, min_charge_per_part)
+raw_$ = max(per_part × qty, min_charge × rush_labor_mult)
 range = raw_$ × 0.85  …  raw_$ × 1.25
 ```
 
 `complexity_mult = min(1.75, tolerance_mult + n_feature_risks × 0.15)`
 
-Tolerance: standard 1.0, tight 1.25, precision 1.5 (precision → shop review).
+Tolerance class: standard 1.0, tight 1.25, precision 1.5 (precision → shop review).
+Tight callouts (additive): metal standard ±0.005", plastic ±0.010"; first hour at
+`tolerances.tight_first_hour_rate`, later hours at rate×(1+uplift%).
 
 Turnaround starting points (tune in YAML, not code):
 
-| Tier | labor | setup | min business days |
+| Tier | hourly rate | setup | min business days |
 | --- | --- | --- | --- |
-| standard | 1.0 | 1.0 | 10 |
-| rush | 1.5 | 1.25 | 4 |
-| emergency | 2.0 | 1.5 | 1 |
+| standard | `shop.rate_usd_per_hr` | 1.0 | 10 |
+| rush | `shop.rush_rate_usd_per_hr` | 1.25 | 4 |
+| emergency | `shop.rush_rate_usd_per_hr` | 1.5 | 1 |
 
 If `due_date` is tighter than the selected tier, the estimator auto-bumps
 and sets `shop_review_required`. Business days are Mon–Fri only.

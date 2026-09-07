@@ -253,6 +253,14 @@ def shop_payload_from_cost(cost: CostBreakdown) -> dict[str, object]:
         "catalog_values_are_placeholders": (
             "yes" if cost.catalog_values_are_placeholders else "no"
         ),
+        "rush_rate_usd_per_hr": cost.applied_rate_usd_per_hr,
+        "material_class": cost.material_class.value,
+        "tight_callouts": cost.tight_callouts,
+        "whole_part_tight": "yes" if cost.whole_part_tight else "no",
+        "tolerance_labor_usd": cost.tolerance_labor_usd,
+        "effective_qty": cost.effective_qty,
+        "amortization_capped": "yes" if cost.amortization_capped else "no",
+        "guardrail_callout": cost.guardrail_callout or "",
         "quote_low_usd": cost.quote_low_usd,
         "quote_high_usd": cost.quote_high_usd,
         "raw_quote_usd": cost.raw_quote_usd,

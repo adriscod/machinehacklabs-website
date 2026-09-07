@@ -26,6 +26,13 @@ def test_site_json_matches_yaml() -> None:
     assert "ss_304" in json_data["materials"]
     assert json_data["turnaround"]["rush"]["labor_mult"] == 1.5
     assert json_data["tolerance"]["tight"] == 1.25
+    assert json_data["shop"]["rush_rate_usd_per_hr"] == 125
+    assert json_data["shop"]["min_charge_per_part_usd"] == 75
+    assert json_data["shop"]["max_amortization_qty"] == 100
+    assert json_data["tolerances"]["standard_in"]["metal"] == 0.005
+    assert json_data["tolerances"]["standard_in"]["plastic"] == 0.010
+    assert json_data["materials"]["delrin"]["class"] == "plastic"
+    assert json_data["materials"]["al_6061"]["class"] == "metal"
 
 
 def test_rfq_inbox_is_quotes_at() -> None:

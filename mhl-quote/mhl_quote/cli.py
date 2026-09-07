@@ -148,6 +148,18 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--tight-callouts",
+        type=int,
+        default=0,
+        metavar="N",
+        help="Number of tight-tolerance callouts (labor adders; 0 = none).",
+    )
+    parser.add_argument(
+        "--whole-part-tight",
+        action="store_true",
+        help="Whole part is tight: all labor at rush_rate; callout adders drop out.",
+    )
+    parser.add_argument(
         "--json",
         action="store_true",
         help="Print machine-readable JSON instead of the human summary",
@@ -244,6 +256,8 @@ def main(argv: list[str] | None = None) -> int:
                 ),
                 due_date=parse_iso_date(args.due_date),
                 as_of_date=parse_iso_date(args.as_of),
+                tight_callouts=max(0, args.tight_callouts),
+                whole_part_tight=bool(args.whole_part_tight),
             ),
             requested_processes=requested,
         )
@@ -283,7 +297,7 @@ def _print_materials(config: QuoteConfig) -> None:
         cost_flag = " TODO_REPLACE" if spec.cost_is_placeholder else ""
         mrr_flag = " TODO_REPLACE" if spec.mrr_is_placeholder else ""
         print(
-            f"  {spec.key:12}  {spec.label}  [{spec.family}]  {enabled}  "
+            f"  {spec.key:12}  {spec.label}  [{spec.family}/{spec.material_class.value}]  {enabled}  "
             f"MRR_eff={spec.mrr_eff_in3_per_hr:g} in³/hr{mrr_flag} "
             f"(typical {spec.mrr_typical_low_in3_per_hr:g}–{spec.mrr_typical_high_in3_per_hr:g})  "
             f"${spec.cost_usd_per_in3:g}/in³{cost_flag}  aliases: {aliases}"
@@ -296,8 +310,17 @@ def _print_config(config: QuoteConfig) -> None:
     usable = machine.usable_in
     print(f"Config: {config.source_path}")
     print(
-        f"  shop rate ${shop.rate_usd_per_hr:g}/hr  setup {shop.setup_hours:g} hr  "
-        f"min charge ${shop.min_charge_usd:g}  band {shop.band_low:g}–{shop.band_high:g}"
+        f"  shop rate ${shop.rate_usd_per_hr:g}/hr  rush ${shop.rush_rate_usd_per_hr:g}/hr  "
+        f"setup {shop.setup_hours:g} hr  min charge ${shop.min_charge_usd:g}  "
+        f"per-part floor ${shop.min_charge_per_part_usd:g}  "
+        f"amort cap {shop.max_amortization_qty}  band {shop.band_low:g}–{shop.band_high:g}"
+    )
+    tol = config.tolerances
+    print(
+        f"  tight tolerances: metal ±{tol.standard_in_metal:g} in  "
+        f"plastic ±{tol.standard_in_plastic:g} in  "
+        f"first hr ${tol.tight_first_hour_rate_usd:g}  "
+        f"+{tol.additional_uplift_pct:g}% after"
     )
     for key, tier in config.turnaround.items():
         print(
