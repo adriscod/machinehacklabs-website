@@ -6,7 +6,7 @@
     <title>Request a quote — Machine Hack Labs</title>
     <link rel="stylesheet" href="/assets/css/site.css">
 </head>
-<body>
+<body class="page-quote">
     <header class="site-header">
         <div class="wrap">
             <a class="brand" href="/">Machine Hack Labs</a>
@@ -21,9 +21,10 @@
         <div class="page-head">
             <h1>Request a quote</h1>
             <p class="lede">
-                Machining-only 3-axis mill. Upload STEP (preferred) or STL.
-                The form emails <strong>quotes@machinehacklabs.com</strong> with your
-                fields, file, and the <strong>estimate</strong> range shown on this page.
+                Machining-only 3-axis mill. Upload STEP (preferred) or STL, set the
+                job drivers, and spin the part in the preview. The form emails
+                <strong>quotes@machinehacklabs.com</strong> with your fields, file,
+                and the <strong>estimate</strong> range shown on this page.
                 That estimate is not a final bid.
             </p>
             <div class="panel terms" id="accept-terms">
@@ -39,116 +40,176 @@
             <p class="hint" id="delivery-badge">Configuring delivery…</p>
         </div>
 
-        <div class="rfq-grid">
-            <form id="rfq-form" class="form-card" action="/__local_rfq" method="post" enctype="multipart/form-data">
-                <label for="name">Name</label>
-                <input id="name" name="name" required autocomplete="name">
+        <form id="rfq-form" class="rfq-layout" action="/__local_rfq" method="post" enctype="multipart/form-data">
+            <div class="rfq-inputs">
+                <section class="form-card">
+                    <fieldset>
+                        <legend>3D file</legend>
+                        <label for="cad_file">Part file (STEP or STL)</label>
+                        <input id="cad_file" name="attachment" type="file" accept=".step,.stp,.stl,application/sla,model/step" required>
+                        <p class="hint">Max 8&nbsp;MB on the email path. Prefer a watertight solid. The part loads in the preview.</p>
+                        <p class="hint" id="upload-status" aria-live="polite"></p>
 
-                <label for="email">Email</label>
-                <input id="email" name="email" type="email" required autocomplete="email">
-
-                <label for="phone">Phone (optional)</label>
-                <input id="phone" name="phone" type="tel" autocomplete="tel">
-
-                <label for="material_filter">Material</label>
-                <input id="material_filter" type="search" placeholder="Search grades (6061, 1018, Delrin…)" autocomplete="off">
-                <select id="material" name="material" required>
-                    <option value="">Loading catalog…</option>
-                </select>
-                <p class="hint">Grouped shop catalog. Pick a grade — aluminum/steel aliases still resolve in the estimator.</p>
-
-                <div class="row-2">
-                    <div>
-                        <label for="material_source">Material source</label>
-                        <select id="material_source" name="material_source" required>
-                            <option value="shop_buys">Shop buys stock</option>
-                            <option value="customer_supplied">Customer supplied</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="qty">Quantity</label>
-                        <input id="qty" name="qty" type="number" min="1" step="1" value="1" required>
-                    </div>
-                </div>
-
-                <div class="row-2">
-                    <div>
-                        <label for="turnaround">Turnaround</label>
-                        <select id="turnaround" name="turnaround" required>
-                            <option value="standard">Standard</option>
-                            <option value="rush">Rush</option>
-                            <option value="emergency">Emergency</option>
-                        </select>
-                        <p class="hint">Required. A tight due date can auto-bump this for the shop range.</p>
-                    </div>
-                    <div>
-                        <label for="due_date">Due date</label>
-                        <input id="due_date" name="due_date" type="date" required>
-                        <p class="hint">Feeds the estimate — not price-inert.</p>
-                    </div>
-                </div>
-
-                <div class="row-2">
-                    <div>
-                        <label for="setups">Setups</label>
-                        <input id="setups" name="setups" type="number" min="1" step="1" value="1" required>
-                    </div>
-                    <div>
-                        <label for="tolerance_class">Tolerance class</label>
-                        <select id="tolerance_class" name="tolerance_class" required>
-                            <option value="standard">Standard</option>
-                            <option value="tight">Tight</option>
-                            <option value="precision">Precision (shop review)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <label for="units">CAD units</label>
-                <select id="units" name="units">
-                    <option value="inch">Inches</option>
-                    <option value="mm">Millimeters</option>
-                </select>
-                <p class="hint">STL defaults to inches; STEP often mm. Wrong units scale the box by 25.4×.</p>
-
-                <fieldset class="checks-set">
-                    <legend>Feature risks (optional)</legend>
-                    <div class="checks">
-                        <label><input type="checkbox" name="feature_risks" value="deep_pockets"> Deep pockets</label>
-                        <label><input type="checkbox" name="feature_risks" value="thin_walls"> Thin walls</label>
-                        <label><input type="checkbox" name="feature_risks" value="fine_engraving"> Fine engraving</label>
-                        <label><input type="checkbox" name="feature_risks" value="many_holes"> Many holes</label>
-                    </div>
-                </fieldset>
-
-                <fieldset class="checks-set">
-                    <legend>Stock override (optional, inches)</legend>
-                    <div class="row-3">
-                        <div>
-                            <label for="stock_x">Stock X</label>
-                            <input id="stock_x" name="stock_x" type="number" min="0" step="any" inputmode="decimal" placeholder="bbox">
+                        <div class="row-2">
+                            <div>
+                                <label for="material_filter">Material</label>
+                                <input id="material_filter" type="search" placeholder="Search grades (6061, 1018, Delrin…)" autocomplete="off">
+                                <select id="material" name="material" required>
+                                    <option value="">Loading catalog…</option>
+                                </select>
+                                <p class="hint" id="standard-tol-hint"></p>
+                                <p class="hint">Grouped shop catalog. Pick a grade — aluminum/steel aliases still resolve in the estimator.</p>
+                            </div>
+                            <div>
+                                <label for="units">CAD units</label>
+                                <select id="units" name="units">
+                                    <option value="inch">Inches</option>
+                                    <option value="mm">Millimeters (typical for STEP)</option>
+                                </select>
+                                <p class="hint">STL defaults to inches; STEP often mm. Wrong units scale the box by 25.4×.</p>
+                            </div>
                         </div>
-                        <div>
-                            <label for="stock_y">Stock Y</label>
-                            <input id="stock_y" name="stock_y" type="number" min="0" step="any" inputmode="decimal" placeholder="bbox">
+                    </fieldset>
+                </section>
+
+                <section class="form-card">
+                    <fieldset>
+                        <legend>Quote drivers</legend>
+                        <div class="row-2">
+                            <div>
+                                <label for="qty">Quantity</label>
+                                <input id="qty" name="qty" type="number" min="1" step="1" value="1" required>
+                            </div>
+                            <div>
+                                <label for="material_source">Material source</label>
+                                <select id="material_source" name="material_source" required>
+                                    <option value="shop_buys">Shop buys stock</option>
+                                    <option value="customer_supplied">Customer supplied</option>
+                                </select>
+                            </div>
                         </div>
-                        <div>
-                            <label for="stock_z">Stock Z</label>
-                            <input id="stock_z" name="stock_z" type="number" min="0" step="any" inputmode="decimal" placeholder="bbox">
+
+                        <div class="row-2">
+                            <div>
+                                <label for="turnaround">Turnaround</label>
+                                <select id="turnaround" name="turnaround" required>
+                                    <option value="standard">Standard</option>
+                                    <option value="rush">Rush</option>
+                                    <option value="emergency">Emergency</option>
+                                </select>
+                                <p class="hint" id="turnaround-rate-hint">Required. A tight due date can auto-bump this for the shop range. Rush and emergency use the shop rush rate.</p>
+                            </div>
+                            <div>
+                                <label for="due_date">Due date</label>
+                                <input id="due_date" name="due_date" type="date" required>
+                                <p class="hint">Feeds the estimate — not price-inert.</p>
+                            </div>
                         </div>
-                    </div>
-                    <p class="hint">Leave blank to use the part bounding box. All three are required together.</p>
-                </fieldset>
 
-                <label for="cad_file">Part file (STEP or STL)</label>
-                <input id="cad_file" name="attachment" type="file" accept=".step,.stp,.stl,application/sla,model/step" required>
-                <p class="hint">Max 8&nbsp;MB on the email path. Prefer a watertight solid. The part loads in the preview.</p>
+                        <div class="row-2">
+                            <div>
+                                <label for="setups">Setups</label>
+                                <input id="setups" name="setups" type="number" min="1" step="1" value="1" required>
+                            </div>
+                            <div>
+                                <span class="field-label" id="tolerance-label">Tolerance class</span>
+                                <div class="radio-row" role="radiogroup" aria-labelledby="tolerance-label">
+                                    <label class="radio"><input type="radio" name="tolerance_class" value="standard" id="tol-standard" checked> Standard</label>
+                                    <label class="radio"><input type="radio" name="tolerance_class" value="tight" id="tol-tight"> Tight</label>
+                                    <label class="radio"><input type="radio" name="tolerance_class" value="precision" id="tol-precision"> Precision (shop review)</label>
+                                </div>
+                            </div>
+                        </div>
 
-                <label for="tolerances">Critical tolerances / notes</label>
-                <textarea id="tolerances" name="tolerances" required placeholder="Fits, threads, datums, inspection needs, fixture constraints…"></textarea>
+                        <div id="tight-options" class="tight-options" hidden>
+                            <div class="row-2">
+                                <div>
+                                    <label for="tight_callouts">Tight callouts (# tighter than standard)</label>
+                                    <input id="tight_callouts" name="tight_callouts" type="number" min="0" step="1" value="0">
+                                </div>
+                                <div class="checkbox-field">
+                                    <label class="checkbox"><input type="checkbox" id="whole_part_tight" name="whole_part_tight" value="on"> Whole part is tight</label>
+                                </div>
+                            </div>
+                            <label for="blueprint_file">Blueprint / drawing <span class="req">(required for tight)</span></label>
+                            <input id="blueprint_file" name="blueprint" type="file" accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.step,.stp,.dxf">
+                            <p class="hint">The shop verifies tight callouts against your drawing.</p>
+                        </div>
 
-                <p class="hint">
-                    This shop does not quote finishes, turning, or 5-axis. Do not request them here.
-                </p>
+                        <fieldset class="checks-set">
+                            <legend>Feature risks (optional)</legend>
+                            <div class="checks">
+                                <label><input type="checkbox" name="feature_risks" value="deep_pockets"> Deep pockets</label>
+                                <label><input type="checkbox" name="feature_risks" value="thin_walls"> Thin walls</label>
+                                <label><input type="checkbox" name="feature_risks" value="fine_engraving"> Fine engraving</label>
+                                <label><input type="checkbox" name="feature_risks" value="many_holes"> Many holes</label>
+                            </div>
+                        </fieldset>
+
+                        <fieldset class="checks-set">
+                            <legend>Stock override (optional, inches)</legend>
+                            <div class="row-3">
+                                <div>
+                                    <label for="stock_x">Stock X</label>
+                                    <input id="stock_x" name="stock_x" type="number" min="0" step="any" inputmode="decimal" placeholder="bbox">
+                                </div>
+                                <div>
+                                    <label for="stock_y">Stock Y</label>
+                                    <input id="stock_y" name="stock_y" type="number" min="0" step="any" inputmode="decimal" placeholder="bbox">
+                                </div>
+                                <div>
+                                    <label for="stock_z">Stock Z</label>
+                                    <input id="stock_z" name="stock_z" type="number" min="0" step="any" inputmode="decimal" placeholder="bbox">
+                                </div>
+                            </div>
+                            <p class="hint">Leave blank to use the part bounding box. All three are required together.</p>
+                        </fieldset>
+
+                        <fieldset class="checks-set">
+                            <legend>Component questionnaire</legend>
+                            <div class="checks">
+                                <label><input type="checkbox" name="material_cert" value="on"> Material certificate</label>
+                                <label><input type="checkbox" name="tapped_holes" value="on"> Tapped / threaded holes</label>
+                                <label><input type="checkbox" name="part_marking" value="on"> Part marking / engraving</label>
+                            </div>
+                        </fieldset>
+
+                        <label for="tolerances">Critical tolerances / notes</label>
+                        <textarea id="tolerances" name="tolerances" required placeholder="Fits, threads, datums, inspection needs, fixture constraints…"></textarea>
+                        <p class="hint">
+                            This shop does not quote finishes, turning, or 5-axis. Do not request them here.
+                        </p>
+                    </fieldset>
+                </section>
+
+                <section class="form-card">
+                    <fieldset>
+                        <legend>Contact</legend>
+                        <div class="row-2">
+                            <div>
+                                <label for="name">Name</label>
+                                <input id="name" name="name" required autocomplete="name">
+                            </div>
+                            <div>
+                                <label for="email">Email</label>
+                                <input id="email" name="email" type="email" required autocomplete="email">
+                            </div>
+                        </div>
+                        <label for="address">Mailing address</label>
+                        <input id="address" name="address" required minlength="6" autocomplete="street-address" placeholder="Street, city, state, ZIP">
+                        <div class="row-2">
+                            <div>
+                                <label for="company">Company <span class="opt">(optional)</span></label>
+                                <input id="company" name="company" autocomplete="organization">
+                            </div>
+                            <div>
+                                <label for="phone">Phone <span class="opt">(optional)</span></label>
+                                <input id="phone" name="phone" type="tel" autocomplete="tel">
+                            </div>
+                        </div>
+                    </fieldset>
+                </section>
+
                 <!-- Shop job tracker (not customer-facing): after quotes@ receives this RFQ,
                      the shop records bid / deposit / payment link in mhl-quote/.local-jobs/
                      (shop_jobs.py or local /__shop/). Same payment URL goes in
@@ -198,8 +259,8 @@
                 <input type="hidden" name="rush_setup_mult" value="">
                 <input type="hidden" name="rush_rate_usd_per_hr" value="">
                 <input type="hidden" name="material_class" value="">
-                <input type="hidden" name="tight_callouts" value="">
-                <input type="hidden" name="whole_part_tight" value="">
+                <input type="hidden" name="tight_callouts" value="" data-shop-hidden="1">
+                <input type="hidden" name="whole_part_tight" value="" data-shop-hidden="1">
                 <input type="hidden" name="tolerance_labor_usd" value="">
                 <input type="hidden" name="effective_qty" value="">
                 <input type="hidden" name="amortization_capped" value="">
@@ -218,10 +279,17 @@
                 <input type="hidden" name="stock_y_in" value="">
                 <input type="hidden" name="stock_z_in" value="">
                 <input type="hidden" name="stock_override" value="">
+                <input type="hidden" name="material_cert" value="" data-shop-hidden="1">
+                <input type="hidden" name="tapped_holes" value="" data-shop-hidden="1">
+                <input type="hidden" name="part_marking" value="" data-shop-hidden="1">
+                <input type="hidden" name="blueprint_attached" value="">
 
                 <p class="err" id="form-error" role="alert"></p>
-                <button class="btn" id="submit-rfq" type="submit" disabled>Send RFQ to quotes@</button>
-            </form>
+                <div class="rfq-actions">
+                    <button class="btn" id="submit-rfq" type="submit" disabled>Send RFQ to quotes@</button>
+                    <p class="hint">The range on the right updates as you change the job. Sending the RFQ is not accepting a bid.</p>
+                </div>
+            </div>
 
             <div class="quote-aside">
                 <section class="panel viewer-panel" aria-label="Part preview">
@@ -229,6 +297,7 @@
                     <div id="part-viewer" class="viewer-canvas">
                         <p class="viewer-placeholder" id="viewer-placeholder">Upload a STEP or STL to preview it here. Drag to orbit · scroll to zoom.</p>
                     </div>
+                    <p class="hint viewer-dims" id="viewer-dims"></p>
                     <p class="hint viewer-status" id="viewer-status" aria-live="polite"></p>
                 </section>
                 <aside class="panel estimate" id="estimate-panel" aria-live="polite">
@@ -236,7 +305,7 @@
                     <p class="hint">Upload a STEP or STL to run the estimator. The dollar band here is an estimate — not a final bid.</p>
                 </aside>
             </div>
-        </div>
+        </form>
     </main>
     <footer class="site-footer">
         <div class="wrap">

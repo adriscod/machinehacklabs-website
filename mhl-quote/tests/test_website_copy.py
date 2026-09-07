@@ -57,6 +57,12 @@ def test_rfq_panel_copy_is_customer_visible_estimate() -> None:
     assert "The shop confirms from quotes@" in js
     assert "A payment link arrives in that email" in js
     assert "function customerCallouts" in js
+    assert "tightCallouts: readTightCallouts()" in js
+    assert "wholePartTight: readWholePartTight()" in js
+    assert "function syncTolerance" in js
+    assert "function syncMaterialHint" in js
+    assert "setViewerDims" in js
+    assert "A blueprint / drawing is required whenever tight tolerance is requested." in js
 
 
 def test_thanks_and_home_do_not_contradict_customer_estimate() -> None:
@@ -148,6 +154,26 @@ def test_quote_page_wires_rfq_v2_controls_and_shop_hiddens() -> None:
     assert 'name="tolerance_class"' in html
     assert 'value="tight"' in html
     assert 'value="precision"' in html
+    assert 'id="tol-tight"' in html
+    assert 'id="tight-options"' in html
+    assert 'id="tight_callouts"' in html
+    assert 'name="tight_callouts"' in html
+    assert 'id="whole_part_tight"' in html
+    assert 'name="whole_part_tight"' in html
+    assert 'id="blueprint_file"' in html
+    assert 'name="blueprint"' in html
+    assert 'name="material_cert"' in html
+    assert 'name="tapped_holes"' in html
+    assert 'name="part_marking"' in html
+    assert 'name="address"' in html
+    assert 'name="company"' in html
+    assert 'id="standard-tol-hint"' in html
+    assert 'id="viewer-dims"' in html
+    assert 'id="upload-status"' in html
+    assert 'id="part-viewer"' in html
+    assert "legend>3D file" in html
+    assert "legend>Quote drivers" in html
+    assert "legend>Contact" in html
     for risk in ("deep_pockets", "thin_walls", "fine_engraving", "many_holes"):
         assert f'value="{risk}"' in html
     assert 'name="stock_x"' in html
@@ -248,10 +274,12 @@ def test_quote_page_has_step_viewer_not_flask_app() -> None:
     js = (REPO / "assets" / "js" / "rfq-form.js").read_text(encoding="utf-8")
     viewer = (REPO / "assets" / "js" / "viewer.js").read_text(encoding="utf-8")
     assert 'id="part-viewer"' in html
+    assert 'id="viewer-dims"' in html
     assert "/assets/vendor/three.min.js" in html
     assert "/assets/vendor/STLLoader.js" in html
     assert "/assets/vendor/OrbitControls.js" in html
     assert 'from "./viewer.js"' in js
+    assert "setViewerDims" in viewer
     assert "/__local_tessellate" in viewer
     assert (REPO / "assets" / "vendor" / "three.min.js").is_file()
     assert "rfq-app" not in html
