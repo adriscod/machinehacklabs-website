@@ -329,6 +329,47 @@ textarea {
   height: 1px;
 }
 
+.quote-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+.viewer-canvas {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  background: #100e0a;
+  border: 1px solid var(--line);
+  overflow: hidden;
+  margin-top: 0.35rem;
+}
+
+.viewer-canvas canvas {
+  display: block;
+}
+
+.viewer-placeholder {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 1.25rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.viewer-status {
+  min-height: 1.2em;
+}
+
+.viewer-status.status-error {
+  color: var(--bad);
+}
+
 .estimate {
   position: sticky;
   top: 1rem;

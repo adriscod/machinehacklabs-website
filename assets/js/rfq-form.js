@@ -8,6 +8,7 @@ import {
   measureCadFile,
   turnaroundTiers,
 } from "./estimator.js";
+import { previewCadFile, resetViewer } from "./viewer.js";
 
 const form = document.getElementById("rfq-form");
 const fileInput = document.getElementById("cad_file");
@@ -216,6 +217,7 @@ async function recompute() {
   formError.textContent = "";
   if (!quoteConfig || !fileInput.files?.[0]) {
     renderEstimate(null);
+    if (!fileInput.files?.[0]) resetViewer();
     return;
   }
   const file = fileInput.files[0];
@@ -332,6 +334,10 @@ async function boot() {
       if (format === "stl" && unitsInput.value === "mm") {
         unitsInput.value = "inch";
       }
+      const unit = unitsInput.value === "mm" ? "mm" : "inch";
+      previewCadFile(fileInput.files[0], unit);
+    } else {
+      resetViewer();
     }
     recompute();
   });
@@ -347,6 +353,11 @@ async function boot() {
   bindRecompute(dueDateInput);
   bindRecompute(toleranceInput);
   bindRecompute(unitsInput);
+  unitsInput.addEventListener("change", () => {
+    if (fileInput.files?.[0]) {
+      previewCadFile(fileInput.files[0], unitsInput.value === "mm" ? "mm" : "inch");
+    }
+  });
   bindRecompute(stockXInput);
   bindRecompute(stockYInput);
   bindRecompute(stockZInput);

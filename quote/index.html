@@ -141,7 +141,7 @@
 
                 <label for="cad_file">Part file (STEP or STL)</label>
                 <input id="cad_file" name="attachment" type="file" accept=".step,.stp,.stl,application/sla,model/step" required>
-                <p class="hint">Max 8&nbsp;MB on the email path. Prefer a watertight solid.</p>
+                <p class="hint">Max 8&nbsp;MB on the email path. Prefer a watertight solid. The part loads in the preview.</p>
 
                 <label for="tolerances">Critical tolerances / notes</label>
                 <textarea id="tolerances" name="tolerances" required placeholder="Fits, threads, datums, inspection needs, fixture constraints…"></textarea>
@@ -223,10 +223,19 @@
                 <button class="btn" id="submit-rfq" type="submit" disabled>Send RFQ to quotes@</button>
             </form>
 
-            <aside class="panel estimate" id="estimate-panel" aria-live="polite">
-                <h2>Estimate range</h2>
-                <p class="hint">Upload a STEP or STL to run the estimator. The dollar band here is an estimate — not a final bid.</p>
-            </aside>
+            <div class="quote-aside">
+                <section class="panel viewer-panel" aria-label="Part preview">
+                    <h2>Part preview</h2>
+                    <div id="part-viewer" class="viewer-canvas">
+                        <p class="viewer-placeholder" id="viewer-placeholder">Upload a STEP or STL to preview it here. Drag to orbit · scroll to zoom.</p>
+                    </div>
+                    <p class="hint viewer-status" id="viewer-status" aria-live="polite"></p>
+                </section>
+                <aside class="panel estimate" id="estimate-panel" aria-live="polite">
+                    <h2>Estimate range</h2>
+                    <p class="hint">Upload a STEP or STL to run the estimator. The dollar band here is an estimate — not a final bid.</p>
+                </aside>
+            </div>
         </div>
     </main>
     <footer class="site-footer">
@@ -239,6 +248,9 @@
             </span>
         </div>
     </footer>
+    <script src="/assets/vendor/three.min.js"></script>
+    <script src="/assets/vendor/STLLoader.js"></script>
+    <script src="/assets/vendor/OrbitControls.js"></script>
     <script type="module" src="/assets/js/rfq-form.js"></script>
 </body>
 </html>

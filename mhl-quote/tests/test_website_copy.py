@@ -177,6 +177,9 @@ def test_readme_documents_shop_job_tracker() -> None:
     text = (REPO / "README.md").read_text(encoding="utf-8")
     assert "shop job tracker" in text.lower()
     assert "http://127.0.0.1:8765/__shop/" in text
+    assert "http://127.0.0.1:8765/quote/" in text
+    assert "demo_block.stl" in text
+    assert "/__local_tessellate" in text
     assert "shop_jobs.py" in text
     assert "Estimator band" in text
     assert "bid" in text
@@ -226,9 +229,8 @@ def test_contact_is_quotes_and_quote_link_only() -> None:
     assert "no second form" in html.lower()
 
 
-def test_capabilities_and_work_use_shop_photos_and_scope() -> None:
+def test_capabilities_use_shop_photos_and_scope() -> None:
     caps = (REPO / "capabilities" / "index.html").read_text(encoding="utf-8")
-    work = (REPO / "work" / "index.html").read_text(encoding="utf-8")
     home = (REPO / "index.html").read_text(encoding="utf-8")
     assert "19.7" in caps and "13.8" in caps and "14" in caps
     assert "cnc milling" in caps.lower()
@@ -239,10 +241,27 @@ def test_capabilities_and_work_use_shop_photos_and_scope() -> None:
     assert "<h2>Out of scope</h2>" not in caps
     assert "/assets/img/site/01-hero-probe-on-part.jpg" in home
     assert "/assets/img/site/02-capabilities-cutting.jpg" in caps
-    assert "/assets/img/site/03-capabilities-coolant.jpg" in caps
-    assert "/assets/img/site/04-work-cutting-action.jpg" in work
-    assert "/assets/img/site/05-work-coolant-spray.jpg" in work
-    assert "finish" not in work.lower() or "not finish" in work.lower()
+
+
+def test_quote_page_has_step_viewer_not_flask_app() -> None:
+    html = QUOTE_HTML
+    js = (REPO / "assets" / "js" / "rfq-form.js").read_text(encoding="utf-8")
+    viewer = (REPO / "assets" / "js" / "viewer.js").read_text(encoding="utf-8")
+    assert 'id="part-viewer"' in html
+    assert "/assets/vendor/three.min.js" in html
+    assert "/assets/vendor/STLLoader.js" in html
+    assert "/assets/vendor/OrbitControls.js" in html
+    assert 'from "./viewer.js"' in js
+    assert "/__local_tessellate" in viewer
+    assert (REPO / "assets" / "vendor" / "three.min.js").is_file()
+    assert "rfq-app" not in html
+    assert ":5000" not in html
+    visible = _visible_html(html)
+    assert "tormach" not in visible
+    assert "1500mx" not in visible
+    assert "chase" not in visible
+    assert "andrew" not in visible
+    assert "not a final bid" in visible
 
 
 def test_privacy_skeleton_covers_rfq_and_no_cards() -> None:

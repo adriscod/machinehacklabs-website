@@ -4,7 +4,13 @@ from pathlib import Path
 
 import pytest
 
-from mhl_quote.geometry import cadquery_available, detect_format, measure_file, measure_stl
+from mhl_quote.geometry import (
+    cadquery_available,
+    detect_format,
+    measure_file,
+    measure_stl,
+    tessellate_to_stl,
+)
 from mhl_quote.models import CadFormat, LengthUnit
 from tests.stl_box import write_axis_aligned_box_stl
 
@@ -49,3 +55,31 @@ def test_step_bbox_and_volume(tmp_path: Path) -> None:
     assert geo.bbox_in.y == pytest.approx(1.0, abs=1e-3)
     assert geo.bbox_in.z == pytest.approx(0.5, abs=1e-3)
     assert geo.part_volume_in3 == pytest.approx(1.0, abs=1e-3)
+
+
+def test_tessellate_step_requires_cadquery(tmp_path: Path) -> None:
+    if cadquery_available():
+        pytest.skip("CadQuery/OCP is installed")
+    step = tmp_path / "box.step"
+    step.write_text("ISO-10303-21;\nHEADER;\nENDSEC;\nDATA;\nEND-ISO-10303-21;\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="CadQuery"):
+        tessellate_to_stl(step, tmp_path / "mesh.stl")
+
+
+def test_tessellate_stl_copies_through(tmp_path: Path) -> None:
+    stl = write_axis_aligned_box_stl(tmp_path / "block.stl", 2.0, 1.5, 0.75)
+    out = tessellate_to_stl(stl, tmp_path / "mesh.stl")
+    assert out.is_file()
+    assert out.read_bytes() == stl.read_bytes()
+
+
+@pytest.mark.skipif(not cadquery_available(), reason="CadQuery/OCP not installed")
+def test_tessellate_step_writes_stl(tmp_path: Path) -> None:
+    import cadquery as cq
+
+    step_path = tmp_path / "block.step"
+    cq.Workplane("XY").box(50.8, 25.4, 12.7).val().exportStep(str(step_path))
+    out = tessellate_to_stl(step_path, tmp_path / "mesh.stl")
+    assert out.is_file()
+    assert out.stat().st_size > 0
+    assert out.suffix.lower() == ".stl"
