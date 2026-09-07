@@ -15,7 +15,9 @@ const SCENE_BG = 0x100e0a;
 
 const container = document.getElementById("part-viewer");
 const placeholder = document.getElementById("viewer-placeholder");
-const statusEl = document.getElementById("viewer-status");
+const statusEl =
+  document.getElementById("upload-status") || document.getElementById("viewer-status");
+const dimsEl = document.getElementById("viewer-dims");
 
 let scene;
 let camera;
@@ -33,6 +35,16 @@ function setStatus(msg, isError) {
   if (!statusEl) return;
   statusEl.textContent = msg || "";
   statusEl.classList.toggle("status-error", Boolean(isError));
+}
+
+export function setViewerDims(bboxIn, format) {
+  if (!dimsEl) return;
+  if (!bboxIn) {
+    dimsEl.textContent = format === "step" ? "STEP loaded (measured in mm)." : "";
+    return;
+  }
+  const f = (n) => (Math.round(Number(n) * 1000) / 1000).toFixed(3);
+  dimsEl.textContent = `Bounding box: ${f(bboxIn.x)} × ${f(bboxIn.y)} × ${f(bboxIn.z)} in`;
 }
 
 function initThree() {
@@ -221,6 +233,7 @@ export function resetViewer() {
   clearMesh();
   showPlaceholder(true);
   setStatus("", false);
+  setViewerDims(null);
 }
 
 export async function previewCadFile(file, unit = "inch") {
