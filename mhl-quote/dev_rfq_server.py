@@ -8,6 +8,10 @@ Then open http://127.0.0.1:8765/quote/
 POST /__local_rfq stores the structured fields + upload under
 mhl-quote/.local-inbox/<timestamp>/  (gitignored). Does not send email.
 
+POST /__local_tessellate tessellates STEP→STL (or copies STL) for the
+/quote/ 3D viewer. GET /__local_mesh/<draft_id> serves the render mesh.
+Artifacts land in mhl-quote/.local-viewer/ (gitignored).
+
 Shop job tracker (local only, not a marketing page):
     http://127.0.0.1:8765/__shop/
 JSON ledger: mhl-quote/.local-jobs/ (gitignored). No Chase API.
@@ -17,7 +21,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
+import uuid
 from datetime import datetime, timezone
 from email import policy
 from email.parser import BytesParser
@@ -25,13 +31,20 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote
 
+from mhl_quote.geometry import GeometryError, tessellate_to_stl
 from mhl_quote.jobs import JobLedger
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 INBOX = Path(__file__).resolve().parent / ".local-inbox"
 JOBS = Path(__file__).resolve().parent / ".local-jobs"
+VIEWER = Path(__file__).resolve().parent / ".local-viewer"
 SHOP_DIR = Path(__file__).resolve().parent / "shop"
 LOCAL_PATH = "/__local_rfq"
+TESSELLATE_PATH = "/__local_tessellate"
+MESH_PREFIX = "/__local_mesh/"
+CAD_EXTENSIONS = {".step", ".stp", ".stl"}
+HEX_ID_RE = re.compile(r"^[0-9a-f]{8,40}$")
+MAX_VIEWER_BYTES = 8 * 1024 * 1024
 SHOP_FILES = {
     "/__shop": "index.html",
     "/__shop/": "index.html",
@@ -65,6 +78,9 @@ class RfqHandler(SimpleHTTPRequestHandler):
             except FileNotFoundError as exc:
                 self._json(404, {"error": str(exc)})
             return
+        if path.startswith(MESH_PREFIX):
+            self._serve_mesh(path[len(MESH_PREFIX) :].split("/", 1)[0])
+            return
         super().do_GET()
 
     def do_POST(self) -> None:
@@ -79,10 +95,44 @@ class RfqHandler(SimpleHTTPRequestHandler):
             self.send_header("X-Local-Inbox", str(folder))
             self.end_headers()
             return
+        if path == TESSELLATE_PATH:
+            self._tessellate()
+            return
         if path.startswith("/__shop/api/"):
             self._shop_write(path)
             return
-        self.send_error(404, "Use POST /__local_rfq or /__shop/api/…")
+        self.send_error(404, "Use POST /__local_rfq, /__local_tessellate, or /__shop/api/…")
+
+    def _tessellate(self) -> None:
+        length = int(self.headers.get("Content-Length") or 0)
+        if length > MAX_VIEWER_BYTES + 65_536:
+            self._json(400, {"error": "File is too large for the viewer (limit 8 MB)."})
+            return
+        body = self.rfile.read(length) if length else b""
+        content_type = self.headers.get("Content-Type") or ""
+        try:
+            filename, payload = _extract_cad_part(content_type, body)
+            sidecar = _store_viewer_mesh(filename, payload)
+        except (ValueError, GeometryError) as exc:
+            self._json(400, {"error": str(exc)})
+            return
+        self._json(200, sidecar)
+
+    def _serve_mesh(self, draft_id: str) -> None:
+        if not HEX_ID_RE.match(draft_id):
+            self.send_error(404, "Unknown mesh")
+            return
+        path = VIEWER / f"{draft_id}.mesh.stl"
+        if not path.is_file():
+            self.send_error(404, "Unknown mesh")
+            return
+        data = path.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", "model/stl")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(data)
 
     def _list_inbox(self) -> None:
         INBOX.mkdir(parents=True, exist_ok=True)
@@ -199,6 +249,52 @@ def _save_submission(content_type: str, body: bytes) -> Path:
     return folder
 
 
+def _extract_cad_part(content_type: str, body: bytes) -> tuple[str, bytes]:
+    """Return (filename, payload) for the first CAD upload part."""
+    preamble = f"MIME-Version: 1.0\r\nContent-Type: {content_type}\r\n\r\n".encode("utf-8")
+    msg = BytesParser(policy=policy.default).parsebytes(preamble + body)
+    if msg.is_multipart():
+        for part in msg.iter_parts():
+            filename = part.get_filename()
+            if not filename:
+                continue
+            payload = part.get_payload(decode=True) or b""
+            return Path(filename).name or "upload.bin", payload
+    raise ValueError("Please attach a STEP or STL file.")
+
+
+def _store_viewer_mesh(filename: str, payload: bytes, dest_root: Path | None = None) -> dict:
+    """Save a CAD upload, tessellate it to a render mesh, and write a sidecar."""
+    root = dest_root if dest_root is not None else VIEWER
+    original = Path(filename).name or "upload.bin"
+    suffix = Path(original).suffix.lower()
+    if suffix not in CAD_EXTENSIONS:
+        allowed = ", ".join(sorted(CAD_EXTENSIONS))
+        raise ValueError(f"Unsupported file type {suffix or '(none)'}; allowed: {allowed}.")
+    if not payload:
+        raise ValueError("The uploaded file was empty.")
+    if len(payload) > MAX_VIEWER_BYTES:
+        raise ValueError("File is too large for the viewer (limit 8 MB).")
+
+    root.mkdir(parents=True, exist_ok=True)
+    draft_id = uuid.uuid4().hex
+    stored = root / f"{draft_id}{suffix}"
+    stored.write_bytes(payload)
+    mesh_path = root / f"{draft_id}.mesh.stl"
+    tessellate_to_stl(stored, mesh_path)
+    fmt = "step" if suffix in {".step", ".stp"} else "stl"
+    sidecar = {
+        "draft_id": draft_id,
+        "original_name": original,
+        "format": fmt,
+        "stored_file": stored.name,
+        "mesh_file": mesh_path.name,
+        "mesh_url": f"/__local_mesh/{draft_id}",
+    }
+    (root / f"{draft_id}.json").write_text(json.dumps(sidecar), encoding="utf-8")
+    return sidecar
+
+
 def _ledger() -> JobLedger:
     return JobLedger(JOBS)
 
@@ -261,6 +357,7 @@ def main() -> int:
     server = ThreadingHTTPServer((args.host, args.port), RfqHandler)
     print(f"Serving {REPO_ROOT} at http://{args.host}:{args.port}/quote/")
     print(f"Local RFQ capture: POST {LOCAL_PATH} → {INBOX} (no email sent)")
+    print(f"STEP/STL viewer:   POST {TESSELLATE_PATH} → GET {MESH_PREFIX}<id> ({VIEWER})")
     print(f"Shop job tracker:  http://{args.host}:{args.port}/__shop/ → {JOBS}")
     try:
         server.serve_forever()

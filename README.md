@@ -45,6 +45,22 @@ Open http://127.0.0.1:8765/quote/
 On localhost the form POSTs to `/__local_rfq`. Packages land in
 `mhl-quote/.local-inbox/` (gitignored). Nothing is sent to quotes@.
 
+### Smoke the 3D viewer
+
+1. `python mhl-quote/dev_rfq_server.py`
+2. Open http://127.0.0.1:8765/quote/
+3. Attach `mhl-quote/samples/demo_block.stl` — the part should appear in
+   **Part preview**. Drag to orbit, scroll to zoom. The estimate range
+   still runs in the panel below (estimate ≠ bid).
+4. STEP (`.step` / `.stp`) is tessellated by `POST /__local_tessellate`
+   (needs CadQuery: `pip install -r mhl-quote/requirements-step.txt`).
+   The render mesh is served at `/__local_mesh/<id>`. Without CadQuery,
+   the viewer falls back to a bounding-box preview; the estimate still
+   runs.
+
+This is not the Flask `rfq-app` on `:5000`. The customer front door stays
+the static `/quote/` page on 8765.
+
 ## After quotes@ (shop job tracker)
 
 When an RFQ lands in **quotes@machinehacklabs.com**, Andrew records the shop

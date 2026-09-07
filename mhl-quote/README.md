@@ -20,6 +20,13 @@ python mhl-quote\dev_rfq_server.py
 
 Open http://127.0.0.1:8765/quote/
 
+The `/quote/` page includes a three.js part preview. STL loads in the
+browser. STEP is tessellated locally (`POST /__local_tessellate`,
+`GET /__local_mesh/<id>`, artifacts in `.local-viewer/`). Install
+CadQuery (`pip install -r requirements-step.txt`) for a solid STEP mesh;
+otherwise the viewer shows a bounding-box fallback. This is not the
+Flask RFQ app.
+
 Local submits go to `mhl-quote/.local-inbox/` and **do not** email quotes@.
 Each local capture also stubs a shop job in `mhl-quote/.local-jobs/`
 (estimated / unpaid) so Andrew can set the bid and paste a Chase link.
