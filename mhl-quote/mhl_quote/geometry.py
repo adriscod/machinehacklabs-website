@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 from typing import assert_never
 
@@ -152,6 +153,52 @@ def measure_step(path: Path, unit: LengthUnit) -> GeometryResult:
 
 def cadquery_available() -> bool:
     return cq is not None
+
+
+def tessellate_to_stl(
+    src: str | Path,
+    dst: str | Path,
+    *,
+    tolerance: float = 0.1,
+    angular_tolerance: float = 0.2,
+) -> Path:
+    """Produce a render-ready STL mesh at ``dst`` from a STEP or STL source.
+
+    STL sources are copied through unchanged. STEP sources are tessellated with
+    CadQuery/OCP. The resulting STL is an internal render artifact for the
+    in-browser viewer — the customer never handles it.
+    """
+    source = Path(src)
+    destination = Path(dst)
+    if not source.is_file():
+        raise GeometryError(f"CAD file not found: {source}")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+
+    cad_format = detect_format(source)
+    if cad_format is CadFormat.STL:
+        shutil.copyfile(source, destination)
+        return destination
+    if cad_format is CadFormat.STEP:
+        if cq is None:
+            raise GeometryError(
+                "CadQuery/OCP is required to tessellate STEP files for the viewer. "
+                "Install it with: python -m pip install -r requirements-step.txt"
+            )
+        try:
+            imported = cq.importers.importStep(str(source))
+            cq.exporters.export(
+                imported,
+                str(destination),
+                exportType="STL",
+                tolerance=tolerance,
+                angularTolerance=angular_tolerance,
+            )
+        except Exception as exc:  # noqa: BLE001 — surface as GeometryError
+            raise GeometryError(f"failed to tessellate STEP {source}: {exc}") from exc
+        if not destination.is_file() or destination.stat().st_size == 0:
+            raise GeometryError(f"STEP tessellation produced no mesh: {source}")
+        return destination
+    assert_never(cad_format)
 
 
 def _step_solids(shape: object) -> list[object]:

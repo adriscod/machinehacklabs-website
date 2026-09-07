@@ -130,4 +130,71 @@ table.queue .num { text-align: right; white-space: nowrap; }
 .site-footer { border-top: 1px solid var(--line); margin-top: 30px; padding: 22px 0; }
 .site-footer p { color: var(--muted); font-size: 13px; margin: 0; }
 
-@media (max-width: 620px) { .grid-2 { grid-template-columns: 1fr; } }
+/* Home page */
+.home-hero { padding: 56px 0 20px; }
+.eyebrow { color: var(--accent-2); text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; font-weight: 700; margin: 0 0 12px; }
+.btn-lg { padding: 14px 24px; font-size: 16px; }
+.home-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin: 8px 0; }
+.feature h3 { margin: 0 0 8px; font-size: 16px; }
+.feature p { color: var(--muted); margin: 0; font-size: 14px; }
+.home-scope { margin-top: 22px; }
+.home-scope p { color: var(--muted); }
+
+/* RFQ two-column layout */
+.rfq-layout { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 22px; align-items: start; margin-bottom: 40px; }
+.rfq-layout .card { margin: 0 0 18px; }
+.rfq-viewer { position: sticky; top: 84px; }
+.viewer-card { padding: 18px; }
+.viewer-canvas {
+    position: relative; width: 100%; height: 420px; border-radius: 10px;
+    background: #11161c; border: 1px solid var(--line); overflow: hidden; margin-top: 6px;
+}
+.viewer-canvas canvas { display: block; }
+.viewer-placeholder {
+    position: absolute; inset: 0; margin: 0; display: grid; place-items: center;
+    text-align: center; padding: 24px; color: var(--muted); font-size: 14px;
+}
+.viewer-dims { margin-top: 10px; min-height: 18px; font-variant-numeric: tabular-nums; }
+.status-error { color: #ffd3d3; }
+
+/* Radio / checkbox rows */
+.radio-row { display: flex; gap: 18px; flex-wrap: wrap; }
+.radio, .checkbox { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; cursor: pointer; }
+.radio input, .checkbox input { width: auto; margin: 0; }
+.check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; }
+.checkbox-field { display: flex; align-items: flex-end; }
+.tight-options { margin-top: 14px; padding: 14px; border: 1px dashed var(--line); border-radius: 10px; background: rgba(255, 122, 26, 0.04); }
+.tight-options[hidden] { display: none; }
+.req { color: var(--accent-2); font-weight: 600; font-size: 12px; }
+
+.alert-warn { background: rgba(255, 162, 89, 0.12); border: 1px solid rgba(255, 162, 89, 0.4); color: var(--accent-2); }
+.quote-sub { color: var(--muted); font-size: 15px; margin: 0 0 6px; }
+.next-steps p { color: var(--muted); }
+
+/* Operator queue cards */
+.op-card { padding: 20px 22px; }
+.op-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 14px; }
+.op-id { font-size: 14px; margin-right: 8px; }
+.op-range strong { font-size: 16px; }
+.op-range .muted { margin-left: 8px; }
+.op-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.op-grid h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 14px 0 8px; }
+.op-grid h3:first-child { margin-top: 0; }
+.op-handoff { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 14px; }
+.op-handoff h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 0 0 10px; }
+.op-handoff-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.op-email summary { cursor: pointer; color: var(--accent-2); font-weight: 600; }
+.op-subject { margin: 10px 0 6px; }
+.op-body { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; white-space: pre-wrap; font-size: 12.5px; color: var(--text); overflow-x: auto; }
+.op-form { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.op-form .field { margin: 0; flex: 1 1 260px; }
+.pill-sent { background: rgba(62, 207, 142, 0.15); color: var(--ok); }
+.pill-pay { background: rgba(255, 162, 89, 0.15); color: var(--accent-2); }
+
+@media (max-width: 860px) {
+    .rfq-layout { grid-template-columns: 1fr; }
+    .rfq-viewer { position: static; }
+    .home-grid { grid-template-columns: 1fr; }
+    .op-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) { .grid-2 { grid-template-columns: 1fr; } .check-grid { grid-template-columns: 1fr; } }

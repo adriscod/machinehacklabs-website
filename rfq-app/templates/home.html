@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Machine Hack Labs — Precision CNC Machining{% endblock %}
+
+{% block content %}
+<section class="home-hero">
+    <p class="eyebrow">Machine Hack Labs · {{ machine.name }} · 3-axis milling</p>
+    <h1>Precision machining, quoted in minutes.</h1>
+    <p class="lede">
+        Upload a <strong>STEP</strong> or <strong>STL</strong> solid, spin it in the browser, and get a
+        rough machining estimate on the spot — labor at ${{ '%g' % shop.rate_usd_per_hr }}/hr plus material
+        pass-through. A real quote and payment link follow from our shop after a quick review.
+    </p>
+    <div class="actions">
+        <a class="btn btn-primary btn-lg" href="{{ url_for('rfq') }}">Open the RFQ tool →</a>
+        <a class="btn btn-lg" href="{{ url_for('list_requests') }}">View the queue</a>
+    </div>
+</section>
+
+<section class="home-grid">
+    <div class="card feature">
+        <h3>1 · Upload &amp; view</h3>
+        <p>Drop in a STEP (preferred) or STL. We tessellate STEP files server-side and render them in an
+            interactive 3D viewer so you can confirm you sent the right part.</p>
+    </div>
+    <div class="card feature">
+        <h3>2 · Set the drivers</h3>
+        <p>Material, quantity, timeline (standard or rush), tolerance, certs, and shop questions.
+            Tight-tolerance jobs ask for a blueprint so the shop can verify callouts.</p>
+    </div>
+    <div class="card feature">
+        <h3>3 · Rough estimate</h3>
+        <p>You get a per-part and batch range instantly. It's a rough estimate — a machinist reviews the
+            job and emails the formal quote plus a Chase payment link.</p>
+    </div>
+</section>
+
+<section class="card home-scope">
+    <h2>What we quote</h2>
+    <p>Machining-only, 3-axis work on a {{ machine.name }} (usable
+        {{ '%g' % machine.usable_in.x }} × {{ '%g' % machine.usable_in.y }} × {{ '%g' % machine.usable_in.z }} in).
+        No finishes, turning, or 5-axis. Parts outside the envelope are still logged so we can reach out.</p>
+    <div class="actions">
+        <a class="btn btn-primary" href="{{ url_for('rfq') }}">Start a request</a>
+    </div>
+</section>
+{% endblock %}

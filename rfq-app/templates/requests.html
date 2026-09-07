@@ -3,60 +3,117 @@
 
 {% block content %}
 <section class="result-head">
-    <h1>RFQ queue</h1>
-    <p class="lede">{{ records|length }} request{{ '' if records|length == 1 else 's' }} logged locally, newest first.</p>
+    <h1>Operator queue</h1>
+    <p class="lede">{{ records|length }} request{{ '' if records|length == 1 else 's' }} logged locally, newest first.
+        Full internal breakdown is operator-only. The tool produces a rough estimate; you send the formal quote from
+        <strong>{{ operator_email }}</strong>.</p>
 </section>
 
 {% if not records %}
 <div class="card empty">
-    <p>No requests yet. <a href="{{ url_for('index') }}">Submit the first one.</a></p>
+    <p>No requests yet. <a href="{{ url_for('rfq') }}">Submit the first one.</a></p>
 </div>
 {% else %}
-<div class="card table-card">
-    <table class="queue">
-        <thead>
-            <tr>
-                <th>Reference</th>
-                <th>Received (UTC)</th>
-                <th>Contact</th>
-                <th>Part</th>
-                <th>Qty</th>
-                <th>Status</th>
-                <th class="num">Range (USD)</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for r in records %}
-            <tr>
-                <td class="mono">{{ r.rfq_id }}</td>
-                <td class="mono">{{ r.received_at }}</td>
-                <td>
-                    <div>{{ r.contact.name }}</div>
-                    <div class="muted">{{ r.contact.email }}{% if r.contact.company %} · {{ r.contact.company }}{% endif %}</div>
-                </td>
-                <td>
-                    <div>{{ r.part.original_filename }}</div>
-                    <div class="muted">{{ r.part.material }} · {{ r.part.units }}</div>
-                </td>
-                <td>{{ r.part.quantity }}</td>
-                <td>
-                    {% if r.summary.status == 'ok' %}
-                    <span class="pill pill-ok">quoted</span>
-                    {% else %}
-                    <span class="pill pill-reject">rejected</span>
-                    {% endif %}
-                </td>
-                <td class="num">
-                    {% if r.summary.quote_low_usd is not none %}
-                    ${{ '%.0f' % r.summary.quote_low_usd }} – ${{ '%.0f' % r.summary.quote_high_usd }}
-                    {% else %}
-                    —
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+{% for r in records %}
+{% set cost = r.quote.cost %}
+<div class="card op-card" id="{{ r.rfq_id }}">
+    <div class="op-head">
+        <div>
+            <span class="mono op-id">{{ r.rfq_id }}</span>
+            {% if r.summary.status == 'ok' %}
+            <span class="pill pill-ok">quoted</span>
+            {% else %}
+            <span class="pill pill-reject">rejected</span>
+            {% endif %}
+            {% if r.operator and r.operator.sent_to_operator %}<span class="pill pill-sent">sent to operator</span>{% endif %}
+            {% if r.operator and r.operator.payment_link %}<span class="pill pill-pay">payment link set</span>{% endif %}
+        </div>
+        <div class="op-range">
+            {% if cost %}
+            <strong>${{ '%.0f' % cost.quote_low_usd }} – ${{ '%.0f' % cost.quote_high_usd }}</strong>
+            <span class="muted">batch · {{ r.received_at }}</span>
+            {% else %}
+            <span class="muted">no range · {{ r.received_at }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="op-grid">
+        <div>
+            <h3>Customer</h3>
+            <table class="kv">
+                <tr><th>Name</th><td>{{ r.contact.name }}</td></tr>
+                <tr><th>Email</th><td>{{ r.contact.email }}</td></tr>
+                <tr><th>Address</th><td>{{ r.contact.address }}</td></tr>
+                {% if r.contact.company %}<tr><th>Company</th><td>{{ r.contact.company }}</td></tr>{% endif %}
+                {% if r.contact.phone %}<tr><th>Phone</th><td>{{ r.contact.phone }}</td></tr>{% endif %}
+            </table>
+
+            <h3>Part</h3>
+            <table class="kv">
+                <tr><th>File</th><td>{{ r.part.original_filename }} <span class="muted">({{ r.part.format }})</span></td></tr>
+                <tr><th>Material</th><td>{{ r.part.material }}{% if r.part.material_on_shelf %} · <span class="muted">on shelf</span>{% endif %}</td></tr>
+                <tr><th>Qty / units</th><td>{{ r.part.quantity }} · {{ r.part.units }}</td></tr>
+                <tr><th>Timeline</th><td>{{ r.part.timeline }}</td></tr>
+                <tr><th>Tolerance</th><td>
+                    {% if r.part.tolerance == 'tight' %}tight{% if r.part.whole_part_tight %} (whole part){% elif r.part.tight_callouts %} ({{ r.part.tight_callouts }} callouts){% endif %}{% else %}standard{% endif %}
+                </td></tr>
+                <tr><th>Cert / tapped / mark</th><td>{{ 'Y' if r.part.material_cert else '–' }} / {{ 'Y' if r.part.tapped_holes else '–' }} / {{ 'Y' if r.part.part_marking else '–' }}</td></tr>
+                {% if r.part.blueprint %}<tr><th>Blueprint</th><td>{{ r.part.blueprint.original_name }}</td></tr>{% endif %}
+                {% if r.part.notes %}<tr><th>Notes</th><td>{{ r.part.notes }}</td></tr>{% endif %}
+            </table>
+        </div>
+
+        <div>
+            <h3>Internal estimate</h3>
+            {% if cost %}
+            <table class="kv">
+                <tr><th>Stock / part / removal</th><td>{{ '%.3f' % cost.stock_volume_in3 }} / {{ '%.3f' % cost.part_volume_in3 }} / {{ '%.3f' % cost.removal_volume_in3 }} in³</td></tr>
+                <tr><th>MRR_eff</th><td>{{ '%g' % cost.mrr_eff_in3_per_hr }} in³/hr</td></tr>
+                <tr><th>Setup / cut</th><td>{{ '%.3f' % cost.setup_hours }} / {{ '%.3f' % cost.cut_hours }} hr (÷ {{ cost.effective_qty }})</td></tr>
+                <tr><th>Labor rate</th><td>${{ '%g' % cost.shop_rate_usd_per_hr }}/hr{% if cost.rush_applied or cost.whole_part_tight %} (rush){% endif %}</td></tr>
+                {% if cost.tight_callouts or cost.whole_part_tight %}
+                <tr><th>Tolerance labor</th><td>{% if cost.whole_part_tight %}whole-part tight{% else %}+${{ '%.2f' % cost.tolerance_labor_usd }} ({{ cost.tight_callouts }} callouts){% endif %}</td></tr>
+                {% endif %}
+                <tr><th>Per part</th><td>labor ${{ '%.2f' % cost.per_part_labor_usd }} + material ${{ '%.2f' % cost.per_part_material_usd }} = ${{ '%.2f' % cost.per_part_raw_usd }}</td></tr>
+                <tr><th>Per-part range</th><td>${{ '%.2f' % cost.per_part_low_usd }} – ${{ '%.2f' % cost.per_part_high_usd }}</td></tr>
+                <tr><th>Batch range</th><td><strong>${{ '%.2f' % cost.quote_low_usd }} – ${{ '%.2f' % cost.quote_high_usd }}</strong></td></tr>
+            </table>
+            {% if cost.guardrail_callout %}
+            <p class="alert alert-warn">{{ cost.guardrail_callout }}</p>
+            {% endif %}
+            {% else %}
+            <ul class="reasons">
+                {% for reason in r.summary.rejection_reasons %}<li>{{ reason }}</li>{% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if r.operator %}
+    <div class="op-handoff">
+        <h3>Operator hand-off</h3>
+        <div class="op-handoff-row">
+            <a class="btn btn-primary" href="{{ r.operator.mailto }}">Open email draft to {{ r.operator.to }}</a>
+            <details class="op-email">
+                <summary>Preview draft</summary>
+                <p class="mono op-subject">{{ r.operator.subject }}</p>
+                <pre class="op-body">{{ r.operator.body }}</pre>
+            </details>
+        </div>
+        <form class="op-form" method="post" action="{{ url_for('update_operator', rfq_id=r.rfq_id) }}">
+            <div class="field">
+                <label for="pay-{{ r.rfq_id }}">Chase payment link (manual)</label>
+                <input type="url" id="pay-{{ r.rfq_id }}" name="payment_link" placeholder="https://…"
+                    value="{{ r.operator.payment_link }}">
+            </div>
+            <label class="checkbox"><input type="checkbox" name="mark_sent" {% if r.operator.sent_to_operator %}checked{% endif %}> Mark sent to operator</label>
+            <label class="checkbox"><input type="checkbox" name="material_on_shelf" {% if r.part.material_on_shelf %}checked{% endif %}> Material on shelf / inventory</label>
+            <button type="submit" class="btn">Save</button>
+        </form>
+    </div>
+    {% endif %}
 </div>
+{% endfor %}
 {% endif %}
 {% endblock %}
