@@ -243,7 +243,7 @@ function renderEstimate(result) {
   if (!result) {
     estimateBox.innerHTML = `
       <h2>Estimate range</h2>
-      <p class="hint">Upload a STEP or STL to run the estimator. The dollar band here is an estimate — not a final bid, and not something you accept on this page.</p>
+      <p class="hint">This is an estimate — not a final bid.</p>
     `;
     writeShopHiddens(null);
     fillHidden("material_cert", "");
