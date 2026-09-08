@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop job tracker — Machine Hack Labs (local)</title>
+    <link rel="stylesheet" href="/assets/css/site.css">
+    <style>
+      .shop-note { border-left: 3px solid var(--copper); padding-left: 0.9rem; }
+      .shop-note li { margin: 0.25rem 0; color: var(--muted); }
+      .job-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+      .job-table th, .job-table td { text-align: left; padding: 0.45rem 0.4rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+      .job-table button { font: inherit; background: none; border: 0; color: var(--copper); cursor: pointer; padding: 0; }
+      .shop-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0 0; }
+      .mono { font-family: ui-monospace, Consolas, monospace; font-size: 0.88rem; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="wrap">
+            <span class="brand">Machine Hack Labs — shop</span>
+            <nav class="nav" aria-label="Local shop">
+                <a href="/quote/">RFQ form</a>
+                <a href="/__shop/" aria-current="page">Job tracker</a>
+            </nav>
+        </div>
+    </header>
+    <main class="wrap">
+        <div class="page-head">
+            <h1>Shop job tracker</h1>
+            <p class="lede">
+                Local only (this <code>/__shop/</code> route exists on
+                <code>dev_rfq_server.py</code>, not on the published site).
+                After <strong>quotes@machinehacklabs.com</strong> receives an RFQ,
+                record the job here and paste the Chase payment link the shop creates.
+            </p>
+        </div>
+
+        <section class="panel shop-note" style="margin-bottom: 1.5rem;">
+            <h2>Payment journey — not a customer page</h2>
+            <ul>
+                <li>Estimator band ≠ final bid. The shop sets the bid after quotes@ review.</li>
+                <li>Deposit is a materials + tooling floor, not a fixed percent of the bid.</li>
+                <li>Paste a Chase URL the shop created. This page does not call Chase or capture cards.</li>
+                <li>Paying that link is acceptance of the stated scope and price.</li>
+                <li>Deposit, then balance, then ship. Scrap is not billed to the customer.</li>
+                <li>Paste the same Chase URL into <code>mhl-quote/templates/bid-email.txt</code> ({CHASE_PAYMENT_LINK}) when you send the bid.</li>
+            </ul>
+        </section>
+
+        <div class="rfq-grid">
+            <section class="panel">
+                <h2>Jobs</h2>
+                <p class="hint" id="jobs-dir"></p>
+                <div id="job-list"><p class="hint">Loading…</p></div>
+            </section>
+
+            <section class="form-card">
+                <h2 id="editor-title">Record / update a job</h2>
+                <form id="job-form">
+                    <label for="job_id">RFQ / job id</label>
+                    <input id="job_id" name="job_id" required autocomplete="off" placeholder="MHL-20260905T143000Z">
+
+                    <label for="rfq_id">RFQ id (if different)</label>
+                    <input id="rfq_id" name="rfq_id" autocomplete="off">
+
+                    <div class="row-2">
+                        <div>
+                            <label for="customer_name">Customer name</label>
+                            <input id="customer_name" name="customer_name" autocomplete="off">
+                        </div>
+                        <div>
+                            <label for="customer_email">Customer email</label>
+                            <input id="customer_email" name="customer_email" type="email" autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div class="row-2">
+                        <div>
+                            <label for="estimate_low_usd">Estimate low (USD)</label>
+                            <input id="estimate_low_usd" name="estimate_low_usd" type="number" min="0" step="0.01">
+                            <p class="hint">Shop rough range. Not the bid.</p>
+                        </div>
+                        <div>
+                            <label for="estimate_high_usd">Estimate high (USD)</label>
+                            <input id="estimate_high_usd" name="estimate_high_usd" type="number" min="0" step="0.01">
+                        </div>
+                    </div>
+
+                    <div class="row-2">
+                        <div>
+                            <label for="bid_usd">Shop bid (USD)</label>
+                            <input id="bid_usd" name="bid_usd" type="number" min="0" step="0.01">
+                        </div>
+                        <div>
+                            <label for="deposit_usd">Deposit (USD)</label>
+                            <input id="deposit_usd" name="deposit_usd" type="number" min="0" step="0.01">
+                            <p class="hint">Materials + tooling floor.</p>
+                        </div>
+                    </div>
+
+                    <label for="chase_payment_url">Chase payment link</label>
+                    <input id="chase_payment_url" name="chase_payment_url" type="url" placeholder="https://… (paste Chase URL the shop created)">
+                    <p class="hint">No auto-charge. The shop creates the ask, then pastes the URL, then sends it.</p>
+
+                    <div class="row-2">
+                        <div>
+                            <label for="workflow_status">Workflow</label>
+                            <select id="workflow_status" name="workflow_status">
+                                <option value="estimated">Estimated</option>
+                                <option value="proceeded">Proceeded</option>
+                                <option value="bid_sent">Bid sent</option>
+                                <option value="deposit_paid">Deposit paid</option>
+                                <option value="scheduled">Scheduled</option>
+                                <option value="balanced">Balanced</option>
+                                <option value="shipped">Shipped</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="payment_status">Payment</label>
+                            <select id="payment_status" name="payment_status">
+                                <option value="unpaid">Unpaid</option>
+                                <option value="deposit_paid">Deposit paid</option>
+                                <option value="balanced">Balanced (paid in full)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <label for="notes">Shop notes</label>
+                    <textarea id="notes" name="notes" placeholder="Scope sent with the bid, fixture notes…"></textarea>
+
+                    <p class="err" id="form-error" role="alert"></p>
+                    <div class="shop-actions">
+                        <button class="btn" id="save-job" type="submit">Save job</button>
+                        <button class="btn btn-ghost" id="advance-job" type="button">Advance status</button>
+                        <button class="btn btn-ghost" id="new-job" type="button">Clear form</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+
+        <section class="panel" style="margin-bottom: 3rem;">
+            <h2>Import from local inbox</h2>
+            <p class="hint">
+                Local RFQ captures live in <code>mhl-quote/.local-inbox/</code> and do not email quotes@.
+                Live RFQs still start from the mailbox — create those jobs with the form above.
+            </p>
+            <div class="row-2" style="align-items: end;">
+                <div>
+                    <label for="inbox-select">Inbox RFQ</label>
+                    <select id="inbox-select"></select>
+                </div>
+                <div>
+                    <button class="btn" id="import-inbox" type="button">Create job from inbox</button>
+                </div>
+            </div>
+            <p class="err" id="inbox-error" role="alert"></p>
+        </section>
+    </main>
+    <footer class="site-footer">
+        <div class="wrap">
+            <span>Local shop ledger. Not published. No Chase API.</span>
+            <span>quotes@machinehacklabs.com</span>
+        </div>
+    </footer>
+    <script src="/__shop/tracker.js"></script>
+</body>
+</html>

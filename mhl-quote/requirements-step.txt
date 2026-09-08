@@ -1,0 +1,4 @@
+# STEP support via CadQuery / OCP. Install after requirements.txt.
+# On Windows this is usually:
+#   python -m pip install "cadquery>=2.4"
+cadquery>=2.4

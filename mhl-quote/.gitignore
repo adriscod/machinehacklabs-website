@@ -1,0 +1,14 @@
+.venv/
+venv/
+.local-inbox/
+.local-jobs/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+dist/
+build/
+.coverage
+htmlcov/
+*.stl.bak

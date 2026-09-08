@@ -1,0 +1,8 @@
+{
+  "quotesInbox": "quotes@machinehacklabs.com",
+  "productionFormAction": "https://formsubmit.co/quotes@machinehacklabs.com",
+  "localFormAction": "/__local_rfq",
+  "maxFileBytes": 8388608,
+  "providerNotes": "Default delivery is FormSubmit (free, no API key) to quotes@. First live submit sends the shop a one-time confirmation email. To use Formspree or another endpoint later, change productionFormAction only — do not commit secrets.",
+  "autoresponse": "Thanks — Machine Hack Labs received your RFQ. The website estimate is not a final bid, and this message does not include pricing. The shop will review and reply from quotes@machinehacklabs.com with a confirmed bid. A payment link arrives in that email after you proceed."
+}

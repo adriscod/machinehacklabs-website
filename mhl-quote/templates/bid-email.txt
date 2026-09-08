@@ -1,0 +1,40 @@
+SHOP USE — copy from the Subject line down. Replace {PLACEHOLDERS}.
+Do not send this header. Paste the Chase payment link / invoice URL you
+created for this job (product name TBD). No Chase API. Resend by filling
+this file again and mailing from quotes@machinehacklabs.com.
+
+-----
+
+Subject: Machine Hack Labs — bid for {PART_OR_JOB}
+
+Hi {CUSTOMER_NAME},
+
+The website estimate was a rough band ({ESTIMATE_LOW_USD}–{ESTIMATE_HIGH_USD}). That estimate is not a final bid and is not what you accept.
+
+This email is the shop bid for the stated scope.
+
+Scope
+-----
+{SCOPE}
+
+Price
+-----
+Bid (total):              ${BID_USD}
+Deposit due now:          ${DEPOSIT_USD}  (materials + tooling floor; not a fixed percent)
+Balance due before ship:  ${BALANCE_USD}
+
+Terms
+-----
+• Paying the deposit link below accepts this stated scope and price.
+• Deposit now, remaining balance before we ship. No installment plan.
+• Scrap from machining stays with the shop and is not billed to you.
+• Funds go to the Machine Hack Labs Chase business account via the payment link / invoice URL for this job. machinehacklabs.com does not take cards.
+
+Pay the deposit (this is acceptance)
+------------------------------------
+{CHASE_PAYMENT_LINK}
+
+Questions: reply to this email or write quotes@machinehacklabs.com.
+
+Machine Hack Labs
+quotes@machinehacklabs.com
