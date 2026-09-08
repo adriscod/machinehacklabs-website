@@ -13,7 +13,9 @@ def test_quote_page_is_quotes_inbox_and_machining_only() -> None:
     html = QUOTE_HTML
     assert "quotes@machinehacklabs.com" in html
     assert 'name="attachment"' in html
-    assert 'name="due_date"' in html
+    assert 'name="qty"' in html
+    assert 'name="turnaround"' in html
+    assert 'name="tolerance_class"' in html
     assert 'name="tolerances"' in html
     assert "finish" not in html.lower() or "does not quote finishes" in html.lower()
     assert "5-axis" in html.lower()  # mentioned as out of scope
@@ -62,6 +64,11 @@ def test_rfq_panel_copy_is_customer_visible_estimate() -> None:
     assert "function syncTolerance" in js
     assert "function syncMaterialHint" in js
     assert "setViewerDims" in js
+    assert "setups: CUSTOMER_SETUPS" in js
+    assert "materialSource: CUSTOMER_MATERIAL_SOURCE" in js
+    assert "dueDate: null" in js
+    assert "featureRisks: []" in js
+    assert "stockDimsIn: null" in js
     assert "A blueprint / drawing is required whenever tight tolerance is requested." in js
 
 
@@ -139,22 +146,20 @@ def _shop_hidden_keys() -> list[str]:
 
 def test_quote_page_wires_rfq_v2_controls_and_shop_hiddens() -> None:
     html = QUOTE_HTML
+    visible = _visible_html(html)
     assert 'id="material_filter"' in html
     assert 'id="material"' in html and 'name="material"' in html
-    assert 'name="material_source"' in html
-    assert 'value="shop_buys"' in html
-    assert 'value="customer_supplied"' in html
     assert 'name="turnaround"' in html
     assert 'value="standard"' in html
     assert 'value="rush"' in html
     assert 'value="emergency"' in html
-    assert 'name="due_date"' in html
-    assert "not price-inert" in html
-    assert 'name="setups"' in html
     assert 'name="tolerance_class"' in html
     assert 'value="tight"' in html
-    assert 'value="precision"' in html
+    assert 'id="tol-standard"' in html
     assert 'id="tol-tight"' in html
+    assert "standard (±0.005" in visible
+    assert "±0.010" in visible
+    assert "tight (tighter than standard)" in visible
     assert 'id="tight-options"' in html
     assert 'id="tight_callouts"' in html
     assert 'name="tight_callouts"' in html
@@ -172,23 +177,38 @@ def test_quote_page_wires_rfq_v2_controls_and_shop_hiddens() -> None:
     assert 'id="upload-status"' in html
     assert 'id="part-viewer"' in html
     assert "legend>3D file" in html
-    assert "legend>Quote drivers" in html
+    assert "legend>Job Information" in html
     assert "legend>Contact" in html
+    assert "quote drivers" not in visible
+    assert "material source" not in visible
+    assert "due date" not in visible
+    assert "feature risks" not in visible
+    assert "stock override" not in visible
+    assert "precision (shop review)" not in visible
+    assert 'id="tol-precision"' not in html
+    assert 'value="precision"' not in html
+    assert 'value="customer_supplied"' not in html
+    assert 'id="material_source"' not in html
+    assert 'id="due_date"' not in html
+    assert 'id="setups"' not in html
+    assert 'id="stock_x"' not in html
+    assert 'id="stock_y"' not in html
+    assert 'id="stock_z"' not in html
+    assert 'name="stock_x"' not in html
+    assert 'name="stock_y"' not in html
+    assert 'name="stock_z"' not in html
     for risk in ("deep_pockets", "thin_walls", "fine_engraving", "many_holes"):
-        assert f'value="{risk}"' in html
-    assert 'name="stock_x"' in html
-    assert 'name="stock_y"' in html
-    assert 'name="stock_z"' in html
+        assert f'value="{risk}"' not in html
+    assert '<input type="hidden" name="material_source" value="shop_buys"' in html
+    assert '<input type="hidden" name="setups" value="1"' in html
+    assert '<input type="hidden" name="feature_risks"' in html
+    assert '<input type="hidden" name="due_date"' in html
     for key in _shop_hidden_keys():
         assert f'name="{key}"' in html, key
         if key not in {
-            "material_source",
             "turnaround",
-            "setups",
             "qty",
             "tolerance_class",
-            "feature_risks",
-            "due_date",
         }:
             assert f'<input type="hidden" name="{key}"' in html, key
 

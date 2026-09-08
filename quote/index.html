@@ -21,7 +21,7 @@
         <div class="page-head">
             <h1>Request a quote</h1>
             <p class="lede">
-                Upload STEP (preferred) or STL, set the job drivers, and spin the
+                Upload STEP (preferred) or STL, set the job information, and spin the
                 part in the preview. That estimate is not a final bid.
             </p>
             <div class="panel terms" id="accept-terms">
@@ -69,22 +69,12 @@
 
                 <section class="form-card">
                     <fieldset>
-                        <legend>Quote drivers</legend>
+                        <legend>Job Information</legend>
                         <div class="row-2">
                             <div>
                                 <label for="qty">Quantity</label>
                                 <input id="qty" name="qty" type="number" min="1" step="1" value="1" required>
                             </div>
-                            <div>
-                                <label for="material_source">Material source</label>
-                                <select id="material_source" name="material_source" required>
-                                    <option value="shop_buys">Shop buys stock</option>
-                                    <option value="customer_supplied">Customer supplied</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="row-2">
                             <div>
                                 <label for="turnaround">Turnaround</label>
                                 <select id="turnaround" name="turnaround" required>
@@ -92,28 +82,14 @@
                                     <option value="rush">Rush</option>
                                     <option value="emergency">Emergency</option>
                                 </select>
-                                <p class="hint" id="turnaround-rate-hint">Required. A tight due date can auto-bump this for the shop range. Rush and emergency use the shop rush rate.</p>
-                            </div>
-                            <div>
-                                <label for="due_date">Due date</label>
-                                <input id="due_date" name="due_date" type="date" required>
-                                <p class="hint">Feeds the estimate — not price-inert.</p>
+                                <p class="hint" id="turnaround-rate-hint">Required. Rush and emergency use the shop rush rate.</p>
                             </div>
                         </div>
 
-                        <div class="row-2">
-                            <div>
-                                <label for="setups">Setups</label>
-                                <input id="setups" name="setups" type="number" min="1" step="1" value="1" required>
-                            </div>
-                            <div>
-                                <span class="field-label" id="tolerance-label">Tolerance class</span>
-                                <div class="radio-row" role="radiogroup" aria-labelledby="tolerance-label">
-                                    <label class="radio"><input type="radio" name="tolerance_class" value="standard" id="tol-standard" checked> Standard</label>
-                                    <label class="radio"><input type="radio" name="tolerance_class" value="tight" id="tol-tight"> Tight</label>
-                                    <label class="radio"><input type="radio" name="tolerance_class" value="precision" id="tol-precision"> Precision (shop review)</label>
-                                </div>
-                            </div>
+                        <span class="field-label" id="tolerance-label">Tolerance</span>
+                        <div class="radio-row" role="radiogroup" aria-labelledby="tolerance-label">
+                            <label class="radio"><input type="radio" name="tolerance_class" value="standard" id="tol-standard" checked> Standard (±0.005" metal / ±0.010" plastic)</label>
+                            <label class="radio"><input type="radio" name="tolerance_class" value="tight" id="tol-tight"> Tight (tighter than standard)</label>
                         </div>
 
                         <div id="tight-options" class="tight-options" hidden>
@@ -130,35 +106,6 @@
                             <input id="blueprint_file" name="blueprint" type="file" accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.step,.stp,.dxf">
                             <p class="hint">The shop verifies tight callouts against your drawing.</p>
                         </div>
-
-                        <fieldset class="checks-set">
-                            <legend>Feature risks (optional)</legend>
-                            <div class="checks">
-                                <label><input type="checkbox" name="feature_risks" value="deep_pockets"> Deep pockets</label>
-                                <label><input type="checkbox" name="feature_risks" value="thin_walls"> Thin walls</label>
-                                <label><input type="checkbox" name="feature_risks" value="fine_engraving"> Fine engraving</label>
-                                <label><input type="checkbox" name="feature_risks" value="many_holes"> Many holes</label>
-                            </div>
-                        </fieldset>
-
-                        <fieldset class="checks-set">
-                            <legend>Stock override (optional, inches)</legend>
-                            <div class="row-3">
-                                <div>
-                                    <label for="stock_x">Stock X</label>
-                                    <input id="stock_x" name="stock_x" type="number" min="0" step="any" inputmode="decimal" placeholder="bbox">
-                                </div>
-                                <div>
-                                    <label for="stock_y">Stock Y</label>
-                                    <input id="stock_y" name="stock_y" type="number" min="0" step="any" inputmode="decimal" placeholder="bbox">
-                                </div>
-                                <div>
-                                    <label for="stock_z">Stock Z</label>
-                                    <input id="stock_z" name="stock_z" type="number" min="0" step="any" inputmode="decimal" placeholder="bbox">
-                                </div>
-                            </div>
-                            <p class="hint">Leave blank to use the part bounding box. All three are required together.</p>
-                        </fieldset>
 
                         <fieldset class="checks-set">
                             <legend>Component questionnaire</legend>
@@ -246,7 +193,7 @@
                 <input type="hidden" name="rejection_reasons" value="">
                 <input type="hidden" name="material_key" value="">
                 <input type="hidden" name="material_family" value="">
-                <input type="hidden" name="material_source" value="" data-shop-hidden="1">
+                <input type="hidden" name="material_source" value="shop_buys" data-shop-hidden="1">
                 <input type="hidden" name="turnaround" value="" data-shop-hidden="1">
                 <input type="hidden" name="turnaround_requested" value="">
                 <input type="hidden" name="turnaround_bumped" value="">
@@ -260,7 +207,7 @@
                 <input type="hidden" name="effective_qty" value="">
                 <input type="hidden" name="amortization_capped" value="">
                 <input type="hidden" name="guardrail_callout" value="">
-                <input type="hidden" name="setups" value="" data-shop-hidden="1">
+                <input type="hidden" name="setups" value="1" data-shop-hidden="1">
                 <input type="hidden" name="qty" value="" data-shop-hidden="1">
                 <input type="hidden" name="tolerance_class" value="" data-shop-hidden="1">
                 <input type="hidden" name="complexity_mult" value="">

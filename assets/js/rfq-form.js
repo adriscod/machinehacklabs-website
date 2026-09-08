@@ -1,5 +1,4 @@
 import {
-  FEATURE_RISK_KEYS,
   SHOP_HIDDEN_FIELD_KEYS,
   buildShopPayload,
   detectFormat,
@@ -16,15 +15,9 @@ const form = document.getElementById("rfq-form");
 const fileInput = document.getElementById("cad_file");
 const materialInput = document.getElementById("material");
 const materialFilter = document.getElementById("material_filter");
-const materialSourceInput = document.getElementById("material_source");
 const qtyInput = document.getElementById("qty");
-const setupsInput = document.getElementById("setups");
 const turnaroundInput = document.getElementById("turnaround");
-const dueDateInput = document.getElementById("due_date");
 const unitsInput = document.getElementById("units");
-const stockXInput = document.getElementById("stock_x");
-const stockYInput = document.getElementById("stock_y");
-const stockZInput = document.getElementById("stock_z");
 const tightCalloutsInput = document.getElementById("tight_callouts");
 const wholePartTightInput = document.getElementById("whole_part_tight");
 const blueprintInput = document.getElementById("blueprint_file");
@@ -32,6 +25,9 @@ const tightOptions = document.getElementById("tight-options");
 const estimateBox = document.getElementById("estimate-panel");
 const formError = document.getElementById("form-error");
 const submitBtn = document.getElementById("submit-rfq");
+
+const CUSTOMER_MATERIAL_SOURCE = "shop_buys";
+const CUSTOMER_SETUPS = 1;
 
 const FAMILY_ORDER = ["aluminum", "steel", "stainless", "plastic", "copper"];
 const FAMILY_LABELS = {
@@ -72,6 +68,13 @@ function writeShopHiddens(result) {
   const keys = new Set([...SHOP_HIDDEN_FIELD_KEYS, ...Object.keys(payload)]);
   for (const key of keys) {
     fillHidden(key, result ? payload[key] : "");
+  }
+  if (!result) {
+    fillHidden("material_source", CUSTOMER_MATERIAL_SOURCE);
+    fillHidden("setups", String(CUSTOMER_SETUPS));
+    fillHidden("feature_risks", "");
+    fillHidden("due_date", "");
+    fillHidden("stock_override", "no");
   }
 }
 
@@ -141,15 +144,13 @@ function labelTurnaroundOptions() {
   const hint = document.getElementById("turnaround-rate-hint");
   const rushRate = Number(quoteConfig.shop && quoteConfig.shop.rush_rate_usd_per_hr);
   if (hint && Number.isFinite(rushRate) && rushRate > 0) {
-    hint.textContent =
-      `Required. A tight due date can auto-bump this for the shop range. ` +
-      `Rush and emergency bill labor at $${rushRate}/hr.`;
+    hint.textContent = `Required. Rush and emergency bill labor at $${rushRate}/hr.`;
   }
 }
 
 function readToleranceClass() {
   const el = form.querySelector('input[type="radio"][name="tolerance_class"]:checked');
-  return el ? el.value : "standard";
+  return el && el.value === "tight" ? "tight" : "standard";
 }
 
 function needsBlueprint() {
@@ -211,26 +212,6 @@ function extrasLabel(extras) {
   return bits.join(", ") || "none";
 }
 
-function readFeatureRisks() {
-  return FEATURE_RISK_KEYS.filter((key) => {
-    const el = form.querySelector(`input[type="checkbox"][name="feature_risks"][value="${key}"]`);
-    return Boolean(el && el.checked);
-  });
-}
-
-function readStockOverride() {
-  const raw = [stockXInput.value, stockYInput.value, stockZInput.value].map((v) => String(v).trim());
-  if (raw.every((v) => v === "")) return null;
-  if (raw.some((v) => v === "")) {
-    throw new Error("Stock override needs X, Y, and Z (inches) together.");
-  }
-  const nums = raw.map((v) => Number(v));
-  if (nums.some((n) => !Number.isFinite(n) || n <= 0)) {
-    throw new Error("Stock override dimensions must be > 0 inches.");
-  }
-  return { x: nums[0], y: nums[1], z: nums[2] };
-}
-
 function customerCallouts(callouts) {
   return (callouts || []).filter((raw) => {
     const lower = String(raw).toLowerCase();
@@ -276,10 +257,7 @@ function renderEstimate(result) {
 
   const priced = cost || high;
   const bbox = geo?.bbox_in;
-  const turnaroundNote = priced?.turnaround_bumped
-    ? `${priced.turnaround_applied} (requested ${priced.turnaround_requested}; auto-bumped)`
-    : priced?.turnaround_applied || "—";
-  const riskNote = (priced?.feature_risks || []).join(", ") || "none";
+  const turnaroundNote = priced?.turnaround_applied || "—";
   const extras = readQuestionnaire();
   const perPartHtml =
     priced && priced.qty > 1 && priced.per_part_low_usd != null
@@ -290,7 +268,6 @@ function renderEstimate(result) {
   else if (priced?.tight_callouts) {
     toleranceNote += ` (${priced.tight_callouts} callout${priced.tight_callouts === 1 ? "" : "s"})`;
   }
-  if (priced?.complexity_mult != null) toleranceNote += ` · complexity ${priced.complexity_mult}`;
   const driverNotes = [];
   if (priced?.whole_part_tight) {
     driverNotes.push(
@@ -311,12 +288,11 @@ function renderEstimate(result) {
     <p class="hint">This is an estimate — not a final bid. The shop confirms from quotes@ after you proceed. A payment link arrives in that email.</p>
     <dl>
       <dt>File</dt><dd>${geo?.filename || "—"} (${geo?.format || "—"})</dd>
-      <dt>Material</dt><dd>${priced?.material_label || materialInput.value} · ${priced?.material_source || "—"}</dd>
+      <dt>Material</dt><dd>${priced?.material_label || materialInput.value}</dd>
+      <dt>Quantity</dt><dd>${priced?.qty ?? "—"}</dd>
       <dt>Turnaround</dt><dd>${turnaroundNote}</dd>
-      <dt>Setups / qty</dt><dd>${priced?.setups ?? "—"} / ${priced?.qty ?? "—"}</dd>
       <dt>Tolerance</dt><dd>${toleranceNote}</dd>
       <dt>Also requested</dt><dd>${extrasLabel(extras)}</dd>
-      <dt>Feature risks</dt><dd>${riskNote}</dd>
       <dt>BBox</dt><dd>${bbox ? `${bbox.x.toFixed(3)} × ${bbox.y.toFixed(3)} × ${bbox.z.toFixed(3)} in` : "—"}</dd>
       <dt>Part vol</dt><dd>${geo?.volume_known ? `${geo.part_volume_in3.toFixed(4)} in³` : "pending (STEP)"}</dd>
       <dt>Envelope</dt><dd>${env?.fits ? "FITS" : `OVER ${ (env?.over_travel_axes || []).map((a) => a.toUpperCase()).join(",") || "?"}`}</dd>
@@ -357,13 +333,13 @@ async function recompute() {
       materialName: materialInput.value,
       geometry,
       qty: Number(qtyInput.value || 1),
-      setups: Number(setupsInput.value || 1),
-      materialSource: materialSourceInput.value,
+      setups: CUSTOMER_SETUPS,
+      materialSource: CUSTOMER_MATERIAL_SOURCE,
       turnaround: turnaroundInput.value,
-      dueDate: dueDateInput.value || null,
+      dueDate: null,
       toleranceClass: readToleranceClass(),
-      featureRisks: readFeatureRisks(),
-      stockDimsIn: readStockOverride(),
+      featureRisks: [],
+      stockDimsIn: null,
       tightCallouts: readTightCallouts(),
       wholePartTight: readWholePartTight(),
     });
@@ -487,11 +463,8 @@ async function boot() {
   });
   bindRecompute(materialInput);
   materialInput.addEventListener("change", syncMaterialHint);
-  bindRecompute(materialSourceInput);
   bindRecompute(qtyInput);
-  bindRecompute(setupsInput);
   bindRecompute(turnaroundInput);
-  bindRecompute(dueDateInput);
   bindRecompute(unitsInput);
   bindRecompute(tightCalloutsInput);
   if (wholePartTightInput) {
@@ -520,12 +493,6 @@ async function boot() {
       previewCadFile(fileInput.files[0], unitsInput.value === "mm" ? "mm" : "inch");
     }
   });
-  bindRecompute(stockXInput);
-  bindRecompute(stockYInput);
-  bindRecompute(stockZInput);
-  for (const box of form.querySelectorAll('input[type="checkbox"][name="feature_risks"]')) {
-    box.addEventListener("change", recompute);
-  }
   form.addEventListener("submit", onSubmit);
   submitBtn.disabled = false;
 }
